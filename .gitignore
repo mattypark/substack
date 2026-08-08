@@ -1,0 +1,19 @@
+.DS_Store
+*.log
+
+# Generated artifact fragment — index.html is the committed output
+build/
+
+# Python build tooling
+__pycache__/
+*.pyc
+.venv/
+
+# Editor
+.vscode/
+.idea/
+
+# Env — never commit real secrets (there are none in this project; keep it that way)
+.env
+.env.*
+!.env.example

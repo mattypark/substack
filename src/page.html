@@ -1,0 +1,1253 @@
+<title>Tuner — a Substack topic spinner</title>
+
+<style>
+__FONTS__
+
+:root {
+  --paper: #FFFFFF;
+  --paper-2: #FDFBFA;
+  --rule: #EDE3DE;
+  --rule-strong: #E0CFC7;
+  --ink: #2A2522;
+  --ink-soft: #7A6E67;
+  --ink-faint: #A79A93;
+  --accent: #D97757;
+  --accent-deep: #A83E1C;
+  --accent-wash: #FBF1ED;
+  --shadow: 0 1px 2px rgba(42, 37, 34, 0.05), 0 12px 32px -18px rgba(168, 62, 28, 0.35);
+
+  --serif: "Anthropic Text", Charter, Georgia, serif;
+  --display: "Anthropic Display", "Anthropic Text", Charter, Georgia, serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+
+  --step--1: 0.8125rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.25rem;
+  --step-2: clamp(1.6rem, 1.3rem + 1.4vw, 2.35rem);
+  --step-3: clamp(2.1rem, 1.4rem + 3.2vw, 3.6rem);
+
+  --measure: 34rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #191817;
+    --paper-2: #201E1D;
+    --rule: #33302E;
+    --rule-strong: #45403D;
+    --ink: #EFEAE6;
+    --ink-soft: #A79A93;
+    --ink-faint: #7A6E67;
+    --accent: #E08C6D;
+    --accent-deep: #F0A184;
+    --accent-wash: #262220;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -18px rgba(0, 0, 0, 0.8);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #191817;
+  --paper-2: #201E1D;
+  --rule: #33302E;
+  --rule-strong: #45403D;
+  --ink: #EFEAE6;
+  --ink-soft: #A79A93;
+  --ink-faint: #7A6E67;
+  --accent: #E08C6D;
+  --accent-deep: #F0A184;
+  --accent-wash: #262220;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -18px rgba(0, 0, 0, 0.8);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: clamp(1.75rem, 1rem + 3vw, 4rem) 1.25rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---------- masthead ---------- */
+
+.masthead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.masthead h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: var(--step-3);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--accent-deep);
+  text-wrap: balance;
+}
+
+.masthead h1 em {
+  font-style: italic;
+  color: var(--ink);
+}
+
+.masthead p {
+  margin: 0;
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+/* ---------- dial ---------- */
+
+.dial {
+  position: relative;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 1.1rem 0 0.9rem;
+  overflow: hidden;
+}
+
+.dial-track {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 30px;
+  will-change: transform;
+  transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dial-track span {
+  flex: 0 0 2px;
+  background: var(--rule-strong);
+  border-radius: 1px;
+}
+
+.dial-track span.major {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+.needle {
+  position: absolute;
+  top: 0.4rem;
+  bottom: 0.35rem;
+  left: 50%;
+  width: 2px;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+
+.needle::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--accent);
+}
+
+.dial-readout {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.dial-readout .freq {
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-deep);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- controls ---------- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 3px;
+  background: var(--paper-2);
+}
+
+.segmented button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.42rem 0.95rem;
+  font-family: var(--serif);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+
+.spin {
+  appearance: none;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #FFFFFF;
+  border-radius: 999px;
+  padding: 0.62rem 1.6rem;
+  font-family: var(--serif);
+  font-size: var(--step-0);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.spin:hover {
+  filter: brightness(1.05);
+}
+
+.spin:active {
+  transform: translateY(1px);
+}
+
+.hint {
+  color: var(--ink-faint);
+  font-size: var(--step--1);
+}
+
+.hint kbd {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  border: 1px solid var(--rule-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  color: var(--ink-soft);
+}
+
+/* ---------- filters ---------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  appearance: none;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 0.28rem 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--accent-wash);
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+
+/* ---------- card ---------- */
+
+.card {
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent);
+  background: var(--paper-2);
+  border-radius: 2px;
+  padding: clamp(1.4rem, 1rem + 2vw, 2.4rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+.card.tuning {
+  opacity: 0.25;
+  transition: opacity 180ms ease;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.prompt-title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: var(--step-2);
+  line-height: 1.14;
+  letter-spacing: -0.015em;
+  color: var(--accent-deep);
+  text-wrap: balance;
+}
+
+.premise {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--step-1);
+  line-height: 1.5;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.beats {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-width: var(--measure);
+}
+
+.beats li {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: 0.35rem;
+  color: var(--ink);
+}
+
+.beats li span {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  padding-top: 0.32rem;
+}
+
+.honest {
+  margin: 0;
+  max-width: var(--measure);
+  font-style: italic;
+  color: var(--ink);
+}
+
+.opener {
+  margin: 0;
+  max-width: var(--measure);
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--accent);
+  color: var(--ink-soft);
+}
+
+/* ---------- timer ---------- */
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.timer-readout {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.5rem;
+  color: var(--accent-deep);
+  min-width: 4.2rem;
+}
+
+.timer-bar {
+  flex: 1 1 12rem;
+  height: 3px;
+  background: var(--rule);
+  position: relative;
+  overflow: hidden;
+}
+
+.timer-bar i {
+  position: absolute;
+  inset: 0 100% 0 0;
+  background: var(--accent);
+  transition: right 250ms linear;
+}
+
+.ghost {
+  appearance: none;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem;
+  font-family: var(--serif);
+  font-size: var(--step--1);
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+
+/* ---------- footer ---------- */
+
+.colophon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  justify-content: space-between;
+  border-top: 1px solid var(--rule);
+  padding-top: 1rem;
+  color: var(--ink-faint);
+  font-size: var(--step--1);
+}
+
+.colophon a {
+  color: var(--accent-deep);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}
+</style>
+
+<main class="page">
+
+  <header class="masthead">
+    <p class="label">Off the cuff / deep cut · <span id="poolCount">36</span> topics you have actually lived</p>
+    <h1>Tuner<em>.</em></h1>
+    <p>Spin a topic pulled from your own year of building. Talk it out in sixty seconds, or take the long version and write it.</p>
+  </header>
+
+  <div class="dial" aria-hidden="true">
+    <div class="dial-track" id="dialTrack"></div>
+    <div class="needle"></div>
+  </div>
+
+  <div class="dial-readout">
+    <span class="freq" id="freq">— — . —</span>
+    <span class="label" id="stationLabel">stand by</span>
+  </div>
+
+  <div class="controls">
+    <button class="spin" id="spinBtn" type="button">Spin</button>
+    <div class="segmented" role="group" aria-label="Mode">
+      <button type="button" data-mode="cuff" aria-pressed="true">Off the cuff</button>
+      <button type="button" data-mode="deep" aria-pressed="false">Deep cut</button>
+    </div>
+    <span class="hint">press <kbd>space</kbd> to respin</span>
+  </div>
+
+  <div class="filters" id="filters" role="group" aria-label="Filter by strand"></div>
+
+  <article class="card" id="card" aria-live="polite">
+    <div class="card-head">
+      <h2 class="prompt-title" id="promptTitle">Hit spin.</h2>
+    </div>
+    <p class="premise" id="premise">Every topic in here is something you have already done, broken, quit, or argued about. The spinner just decides which one you have to be honest about today.</p>
+    <div id="modeBody"></div>
+  </article>
+
+  <footer class="colophon">
+    <span>Sound taken from <a href="https://www.unprompted.cool/" target="_blank" rel="noopener">unprompted.cool</a> — spin, then speak.</span>
+    <span>Anthropic Serif · <span id="seenCount">0</span> spun this session</span>
+  </footer>
+
+</main>
+
+<script>
+const TOPICS = [
+  {
+    strand: "shipping",
+    title: "The project I abandoned at ninety percent",
+    premise: "The last ten percent is where you find out whether you wanted the thing or the feeling of building the thing.",
+    cuff: "Name the project. Say exactly which task you kept not doing, and what that task was really asking of you.",
+    beats: [
+      "The repo, the date it went quiet, and the last commit message.",
+      "What the remaining work actually was — usually boring, usually public-facing.",
+      "The rule you now use to tell a dead project from a paused one."
+    ],
+    honest: "Abandoning at ninety percent is not a time problem. It is the last moment you can still call it unfinished instead of unwanted.",
+    opener: "There is a folder on my laptop with eleven projects in it that are all one afternoon from being done."
+  },
+  {
+    strand: "shipping",
+    title: "Forty repos, three users",
+    premise: "You have built more software this year than most adults you know. Almost nobody uses it. Write about what that is worth.",
+    cuff: "Argue both sides for thirty seconds each: building as portfolio, and building as procrastination.",
+    beats: [
+      "Count the repos honestly, including the embarrassing ones.",
+      "Separate the ones built to learn from the ones built to be used — different scoreboards.",
+      "What changed the first time a stranger actually opened one."
+    ],
+    honest: "Reps are real. So is the fact that shipping to nobody protects you from finding out you were wrong.",
+    opener: "My GitHub looks like a career. My analytics look like a group chat."
+  },
+  {
+    strand: "shipping",
+    title: "A deadline does what motivation cannot",
+    premise: "Every project that shipped had a date attached to it. Every one that did not, did not.",
+    cuff: "Pick the last thing you finished. Reverse-engineer why. Was it discipline, or was somebody waiting?",
+    beats: [
+      "Two projects, same excitement level, one deadline between them.",
+      "What a real deadline is: someone who notices when you miss it.",
+      "How you now manufacture deadlines when nobody hands you one."
+    ],
+    honest: "You are not lazy. You are unobserved, and those look identical from the inside.",
+    opener: "I finished a whole app in four days for a competition and let a better idea rot for four months."
+  },
+  {
+    strand: "shipping",
+    title: "Rewriting is cheaper than deciding",
+    premise: "You will refactor for a week to avoid one uncomfortable product choice.",
+    cuff: "Describe the last refactor you did. Then say what decision it let you postpone.",
+    beats: [
+      "The refactor: what you told yourself it was for.",
+      "The actual open question underneath it — who is this for, what does it cost, will anyone pay.",
+      "The move: how long you now let yourself rearrange before you must choose."
+    ],
+    honest: "Clean code is the most respectable way to stall.",
+    opener: "I rebuilt the same settings page three times to avoid asking one person whether they wanted the product."
+  },
+  {
+    strand: "shipping",
+    title: "Nobody asked for this",
+    premise: "Most of what you build has one user. Make the case for software built for an audience of one.",
+    cuff: "Defend your most useless tool for a minute, as if to an investor. Then as if to yourself.",
+    beats: [
+      "The tool nobody wanted that you use every single day.",
+      "Why scratch-your-own-itch software is better built than anything you built for a hypothetical user.",
+      "Where the argument breaks: the itch you scratched was never a market."
+    ],
+    honest: "Building for yourself is the fastest way to learn and the slowest way to matter. Both are true at once.",
+    opener: "The most-used thing I have ever written has exactly one user and it will never have two."
+  },
+  {
+    strand: "shipping",
+    title: "My most-used tool is forty lines long",
+    premise: "The small script beats the ambitious platform, and you have the receipts.",
+    cuff: "Read the script out loud, roughly. Explain why it survived when bigger things did not.",
+    beats: [
+      "What it does, in one sentence, with no architecture words.",
+      "What you almost built instead, and how many weeks that would have taken.",
+      "The pattern: solve the ten-second annoyance, not the ten-year vision."
+    ],
+    honest: "Ambition is what you build when you are trying to impress the version of yourself that reads Hacker News.",
+    opener: "It has no tests, no README, and no name. I run it forty times a day."
+  },
+
+  {
+    strand: "agents",
+    title: "I gave an AI access to my messages",
+    premise: "You built an agent that reads and writes as you. Write about the exact moment it went too far.",
+    cuff: "Tell the story of one message it sent or drafted that made you flinch. Then say what you changed.",
+    beats: [
+      "What the agent was allowed to do, before you knew better.",
+      "The moment of flinch — the message, the tone, the wrongness.",
+      "The permission model you use now, in plain words, not config."
+    ],
+    honest: "Delegating your voice is different from delegating your work, and the difference does not announce itself until afterward.",
+    opener: "It sounded like me. That was the problem."
+  },
+  {
+    strand: "agents",
+    title: "What I stopped learning when I started using AI",
+    premise: "There are skills you were three weeks from having when a model made them optional.",
+    cuff: "Name one thing you can no longer do unassisted that you could have learned. Is that a loss? Sixty seconds.",
+    beats: [
+      "The specific skill: regex, SQL joins, CSS layout, whatever it actually is.",
+      "The moment you noticed the gap — usually offline, usually under pressure.",
+      "Your rule for what you refuse to hand over, and why that list is short."
+    ],
+    honest: "Every tool trades a skill for a speed. Pretending you are only gaining is how you end up unable to debug your own output.",
+    opener: "I can ship a full-stack app in a weekend and I had to look up how to reverse a string."
+  },
+  {
+    strand: "agents",
+    title: "The prompt is the product",
+    premise: "You have shipped things where the only real intellectual property was three paragraphs of instructions.",
+    cuff: "Describe your best prompt like it is a piece of engineering. What makes it good?",
+    beats: [
+      "A product of yours where the model was commodity and the prompt was everything.",
+      "What separates a prompt that works from one that works twice — constraints, examples, refusal cases.",
+      "Whether this is a real moat or a temporary one, and how you would know."
+    ],
+    honest: "Writing has quietly become the highest-leverage engineering skill and half of engineering has not noticed.",
+    opener: "The whole app is a text box, a model I did not train, and four hundred words I rewrote ninety times."
+  },
+  {
+    strand: "agents",
+    title: "AI made me faster at the wrong things",
+    premise: "Speed compounds in whatever direction you were already pointed. Yours was not always right.",
+    cuff: "Pick a week where you produced enormous output and it did not matter. Diagnose it.",
+    beats: [
+      "The output: files, features, commits, all real.",
+      "The thing you did not do that week — talk to a user, cut scope, decide.",
+      "How you now spend the time the tools gave back."
+    ],
+    honest: "A faster car does not fix a wrong turn. It commits you to it harder.",
+    opener: "I shipped nine features that month. None of them were the one feature."
+  },
+  {
+    strand: "agents",
+    title: "Reading code I did not write, that I shipped",
+    premise: "There is code in production under your name that you understand at a glance and could not have authored.",
+    cuff: "Is that ownership? Argue it out loud. Do not resolve it too fast.",
+    beats: [
+      "The file, and what happened when it broke.",
+      "The line between reading fluently and knowing — where you actually sit.",
+      "The discipline you now use before you merge: read every line, or run every path."
+    ],
+    honest: "You own what you ship, whether or not you typed it. Debugging is when the bill arrives.",
+    opener: "The bug was in a function I had approved without reading, three weeks earlier, at midnight."
+  },
+  {
+    strand: "agents",
+    title: "The agent that only works when I am watching",
+    premise: "Autonomy demos beautifully and fails quietly. You have watched both.",
+    cuff: "Explain the gap between the demo run and the unattended run to someone non-technical.",
+    beats: [
+      "The demo: what it did, why it looked like magic.",
+      "The unattended failure — silent, plausible, wrong.",
+      "What you build now instead: checkpoints, refusals, small blast radius."
+    ],
+    honest: "Every impressive autonomous demo is a supervised one. The interesting work is what happens on hour six.",
+    opener: "It ran perfectly for eleven minutes, which is exactly as long as I was looking at it."
+  },
+
+  {
+    strand: "internet",
+    title: "Thirty million views and a quiet inbox",
+    premise: "Reach and relationships are different currencies, and you have far more of one.",
+    cuff: "What did the big numbers actually get you? Be specific, and be unflattering if it is true.",
+    beats: [
+      "The numbers, stated plainly, without the flex framing.",
+      "What converted: opportunities, friends, money, or nothing.",
+      "What you would trade the whole follower count for."
+    ],
+    honest: "Attention is not access. Nobody tells you that the second one has to be earned separately.",
+    opener: "A video did seven figures of views and the most useful thing that came out of it was one reply."
+  },
+  {
+    strand: "internet",
+    title: "Posting as the youngest person in the room",
+    premise: "Your age is either the whole story or completely irrelevant, and you do not get to choose which.",
+    cuff: "When has being young helped you? When has it been the only thing anyone saw? A minute.",
+    beats: [
+      "The first time your age was the headline instead of the work.",
+      "How that shapes what you post — and what you leave out to be taken seriously.",
+      "The version of your work that would survive the age being removed."
+    ],
+    honest: "Being impressive for your age has an expiry date, and the work has to outlive it.",
+    opener: "Every intro starts with a number that has nothing to do with what I built."
+  },
+  {
+    strand: "internet",
+    title: "One hundred cold emails, honestly counted",
+    premise: "You have actually run the experiment. Publish the real reply rate and what moved it.",
+    cuff: "Recite your best cold email from memory. Then say why it worked.",
+    beats: [
+      "The raw numbers: sent, opened, replied, met.",
+      "The three lines that changed everything — specificity, brevity, and one real reason it is them.",
+      "What you got wrong for the first fifty."
+    ],
+    honest: "Nobody owes you a reply. The email that works is the one that costs the reader less than it cost you.",
+    opener: "Ninety-one people ignored me. The nine who did not are why anything happened this year."
+  },
+  {
+    strand: "internet",
+    title: "Building in public without performing",
+    premise: "There is a version of documenting your work that is honest, and a version that is content. You have done both.",
+    cuff: "Where is your line? Say it out loud and then stress-test it.",
+    beats: [
+      "A post you made that was true and useful.",
+      "A post you made that was engineered, and what it cost in accuracy.",
+      "The rule you keep now: what gets published, what stays in the repo."
+    ],
+    honest: "The incentive is always to overstate the arc. Real building is mostly flat with two good days in it.",
+    opener: "I have written the sentence 'excited to share' about work I was not excited about."
+  },
+  {
+    strand: "internet",
+    title: "The follower number stopped meaning anything",
+    premise: "There was a specific day the metric stopped landing. Write about that day.",
+    cuff: "What replaced it? Answer honestly — something replaced it.",
+    beats: [
+      "What the number used to do for you.",
+      "The day it did not — the milestone you hit and felt nothing about.",
+      "The metric you actually watch now, and whether it is any healthier."
+    ],
+    honest: "Every metric you chase eventually becomes furniture. The question is whether the next one is better chosen.",
+    opener: "I passed a number I had wanted for two years and checked it twice, then forgot about it by dinner."
+  },
+
+  {
+    strand: "school",
+    title: "School and the internet teach opposite lessons",
+    premise: "One rewards completeness. The other rewards being early and roughly right.",
+    cuff: "Take one homework assignment and one shipped project. Compare what each rewarded.",
+    beats: [
+      "The classroom rule: finish everything, on time, to a rubric.",
+      "The internet rule: publish the useful half now, fix it in the replies.",
+      "Where each is right, and the cost of confusing them."
+    ],
+    honest: "The skill is knowing which room you are in. People who only learn one rule fail badly in the other.",
+    opener: "I got points off for an unfinished lab the same week an unfinished tool got its first real user."
+  },
+  {
+    strand: "school",
+    title: "The four-year plan I made at fifteen",
+    premise: "You wrote out a plan for years you have not lived. Publish it and interrogate it.",
+    cuff: "Read the plan out loud. Which part is already wrong?",
+    beats: [
+      "What the plan actually says — courses, projects, targets, the honest version.",
+      "The assumptions holding it up, especially the ones about the world staying still.",
+      "What the plan is really for: direction, or reassurance."
+    ],
+    honest: "A plan made at fifteen is not a prediction. It is a way of deciding what you refuse to drift into.",
+    opener: "I have a spreadsheet with seven tabs describing a person who does not exist yet."
+  },
+  {
+    strand: "school",
+    title: "Grades are a lagging indicator",
+    premise: "By the time the number arrives, the learning it measured happened months ago or never happened at all.",
+    cuff: "What do you actually use to tell whether you learned something? Sixty seconds, no rubric words.",
+    beats: [
+      "A class where the grade and the learning came apart.",
+      "The real signals: can you rebuild it, explain it, or find the bug in it.",
+      "What you would keep from school if you could keep only one thing."
+    ],
+    honest: "You can pass without learning and learn without passing, and both are common enough to be boring.",
+    opener: "I aced a unit I could not explain to a friend two weeks later."
+  },
+  {
+    strand: "school",
+    title: "Building on a shared laptop",
+    premise: "Constraints you did not choose shape the work more than the ones you did.",
+    cuff: "Describe your actual working setup, and what it forces you to do differently.",
+    beats: [
+      "The real conditions: hours, machine, interruptions.",
+      "What that ruled out, and what it accidentally taught — small commits, fast context switching, writing things down.",
+      "The advice that assumes a quiet room and infinite compute, and why it is useless to you."
+    ],
+    honest: "Most productivity advice is written by people describing their circumstances and calling it discipline.",
+    opener: "My deep work window is whenever nobody else needs the computer."
+  },
+
+  {
+    strand: "leading",
+    title: "Passionate over qualified",
+    premise: "You have chosen people by how much they cared instead of what they had done. Defend it with evidence.",
+    cuff: "Pick one person you took a chance on. What happened? Sixty seconds, no résumé words.",
+    beats: [
+      "The two candidates: one credentialed, one obsessed.",
+      "What actually predicted output in your team — showing up, replying, finishing.",
+      "Where the heuristic failed you, because it has."
+    ],
+    honest: "Caring is not a substitute for skill. It is just a better predictor of whether skill will arrive.",
+    opener: "The best person on my team had nothing on paper and answered every message within the hour."
+  },
+  {
+    strand: "leading",
+    title: "The first time I had to tell someone no",
+    premise: "Rejecting a person who wanted in is a specific kind of hard, and you have done it.",
+    cuff: "Say what you actually wrote, or wish you had written. Then say what you learned about clarity.",
+    beats: [
+      "The situation, without making yourself the hero of it.",
+      "The two bad options: vague kindness, or clear disappointment.",
+      "What you would say now, and why the honest version is the kinder one."
+    ],
+    honest: "Softening a no does not protect them. It protects you, and it costs them time.",
+    opener: "I rewrote the rejection email six times and every version was about me."
+  },
+  {
+    strand: "leading",
+    title: "Nobody joins for the mission statement",
+    premise: "You wrote the mission. Then you watched what actually made people show up.",
+    cuff: "What made your first real member commit? Be specific. It was not the deck.",
+    beats: [
+      "The mission as written versus the reason people give when you ask them.",
+      "The real recruiting unit: one person, one conversation, one clear thing to do this week.",
+      "How the mission earns its keep later — for retention, not recruitment."
+    ],
+    honest: "People join people and specific tasks. The mission is what keeps them once the novelty runs out.",
+    opener: "I spent three weeks on a mission statement and got every member from a text message."
+  },
+  {
+    strand: "leading",
+    title: "Delegation feels like losing",
+    premise: "Handing off work you are good at feels like giving away the part you liked. Write through that.",
+    cuff: "Name the task you will not delegate. Interrogate the reason for a full minute.",
+    beats: [
+      "The first thing you handed off and how badly you wanted to take it back.",
+      "What it cost when you did take it back.",
+      "The test: is this mine because it needs me, or because I like it?"
+    ],
+    honest: "Doing it yourself is faster today and fatal by month three. Every founder learns this on the same schedule.",
+    opener: "I gave the task away on Monday and had quietly redone it by Thursday."
+  },
+
+  {
+    strand: "craft",
+    title: "Why everything AI makes looks the same",
+    premise: "You can spot a generated interface in two seconds. Explain the tells, then explain the fix.",
+    cuff: "List the tells out loud — the palette, the font, the layout, the rounding. Then say what breaks the pattern.",
+    beats: [
+      "The house style: the exact colors, faces, and spacing that repeat everywhere.",
+      "Why it happens — averages, safety, and the absence of a subject.",
+      "What a specific point of view looks like in practice, with one example of yours."
+    ],
+    honest: "The model is not out of ideas. It is out of constraints, and constraints are the designer's actual job.",
+    opener: "I can name the accent color before the page finishes loading."
+  },
+  {
+    strand: "craft",
+    title: "Taste is a list of things you refuse to do",
+    premise: "You have developed opinions. Write them as prohibitions, because that is how they actually work.",
+    cuff: "Recite five things you will not ship, and one reason each. Fast.",
+    beats: [
+      "Five rules, stated as refusals, from real projects.",
+      "Where each rule came from — a specific thing you shipped and regretted.",
+      "The rule you broke on purpose, and why it was right to break it."
+    ],
+    honest: "Taste is not knowing what is good. It is knowing, quickly, what is not, and being willing to say so.",
+    opener: "I do not use more than two typefaces and I have lost arguments about it."
+  },
+  {
+    strand: "craft",
+    title: "I copied a site frame by frame",
+    premise: "You pulled a screen recording apart at a tenth of a second to learn how the motion worked. Teach that method.",
+    cuff: "Walk through the method as if teaching it: capture, extract, isolate, rebuild.",
+    beats: [
+      "The site, and the exact moment of motion you could not stop rewatching.",
+      "The process: frames, timings, easing, and what you got wrong the first time.",
+      "What copying teaches that tutorials cannot — the timing between things."
+    ],
+    honest: "Copying carefully is the fastest form of study and the least respected one. The line is what you do after.",
+    opener: "I turned four seconds of a website into forty screenshots and learned more than in a month of docs."
+  },
+  {
+    strand: "craft",
+    title: "The animation that nobody notices is the point",
+    premise: "You spend hours on motion that most visitors could not describe. Justify it.",
+    cuff: "Defend one micro-interaction for sixty seconds, to someone who thinks it is a waste of time.",
+    beats: [
+      "The interaction: what it is, in milliseconds and easing curves.",
+      "What it communicates that static UI cannot — state, cause, weight.",
+      "Where it becomes indulgent, and how you tell."
+    ],
+    honest: "Good motion is felt, not seen. Bad motion is the reverse, which is why so much of it announces itself.",
+    opener: "Nobody has ever mentioned the hover state I spent an evening on, which means I got it right."
+  },
+
+  {
+    strand: "discipline",
+    title: "Tennis taught me to lose on purpose",
+    premise: "The point you give up to win the game is a skill that translates directly into shipping.",
+    cuff: "Describe a match where the right move was to concede something. Then find the same move in a project.",
+    beats: [
+      "The match, the specific point, and the decision.",
+      "The transfer: what a conceded point looks like in a product — the cut feature, the ugly fix.",
+      "Where the analogy stops, because sport has an opponent and work usually does not."
+    ],
+    honest: "Trying your hardest on every point is how you lose the ones that matter. Nobody says this out loud to fifteen-year-olds.",
+    opener: "I lost a point deliberately for the first time at thirteen and it felt like cheating."
+  },
+  {
+    strand: "discipline",
+    title: "The hour before practice is the whole day",
+    premise: "You know exactly how the last hour before a fixed commitment behaves. Write about that hour.",
+    cuff: "Describe what you get done in a hard-edged hour versus an open afternoon. Explain the difference.",
+    beats: [
+      "The hour: what fits in it, reliably.",
+      "The open afternoon: what does not get done, reliably.",
+      "How you now build hard edges into days that do not have any."
+    ],
+    honest: "Time expands to fill the space you give it, and the fix is not more discipline. It is smaller containers.",
+    opener: "I get more done between four and five than between noon and six."
+  },
+  {
+    strand: "discipline",
+    title: "Sleep is a build step",
+    premise: "You have shipped tired and shipped rested and the code is not the same code.",
+    cuff: "Compare two sessions honestly — one at midnight, one in the morning. What actually differed?",
+    beats: [
+      "The midnight session: volume, confidence, bug count.",
+      "The morning after, reading it back.",
+      "The rule you keep now, and how often you break it."
+    ],
+    honest: "Late-night work feels productive because judgment goes before energy does. You cannot feel your own decline.",
+    opener: "Everything I have ever had to revert was written after eleven."
+  },
+  {
+    strand: "discipline",
+    title: "Practice with no scoreboard",
+    premise: "Sport gives you feedback every point. Most work does not, and you have had to invent it.",
+    cuff: "How do you know a working day was good? Answer without using the word productive.",
+    beats: [
+      "The sport version: instant, unambiguous, external feedback.",
+      "The work version: weeks of silence, then a signal that may be noise.",
+      "Your substitute scoreboard, and whether it is measuring the right thing."
+    ],
+    honest: "Without a scoreboard, effort feels like progress. That is the whole trap.",
+    opener: "In a match I know within two seconds. At a desk I can be wrong for a month."
+  },
+
+  {
+    strand: "money",
+    title: "Charging for the first time",
+    premise: "The gap between free and one dollar is the widest gap in the whole business.",
+    cuff: "Say your number out loud. Notice what your voice does. Then justify it.",
+    beats: [
+      "What you built, and what you almost gave away.",
+      "The conversation where you said a price, and what happened in your chest.",
+      "What being paid changed about the work — scope, honesty, speed."
+    ],
+    honest: "Free work protects you from a verdict. A price is someone telling you the truth in the only language that does not flatter.",
+    opener: "I had shipped a dozen things before anyone paid me a cent for any of them."
+  },
+  {
+    strand: "money",
+    title: "The advice that only works if you are already good",
+    premise: "Half of what you read assumes a network, a portfolio, or a reputation you do not have yet.",
+    cuff: "Take one famous piece of advice and explain who it actually works for.",
+    beats: [
+      "The advice, quoted fairly.",
+      "The hidden precondition — usually distribution, capital, or a warm intro.",
+      "The version that works from zero, which is almost always slower and less quotable."
+    ],
+    honest: "Survivor advice describes the last mile of a road, told by people who cannot remember the first one.",
+    opener: "Just build something people want assumes you already know some people."
+  },
+  {
+    strand: "money",
+    title: "What I would tell a thirteen-year-old with these tools",
+    premise: "Two years of leverage that did not exist before. Write the letter you would have wanted.",
+    cuff: "Give the whole letter in sixty seconds. Lead with what not to do.",
+    beats: [
+      "The one thing to start today, stated concretely enough to act on.",
+      "The trap you fell into that they will fall into — tools over problems, output over users.",
+      "What still takes the same amount of time as it always did."
+    ],
+    honest: "The tools got faster. Taste, judgment, and knowing what is worth building did not, and that is now the whole competition.",
+    opener: "You can build almost anything this weekend, which means the only hard question left is what."
+  }
+];
+
+const MODES = {
+  cuff: {
+    label: "Off the cuff",
+    seconds: 60
+  },
+  deep: {
+    label: "Deep cut"
+  }
+};
+
+const els = {
+  card: document.getElementById("card"),
+  title: document.getElementById("promptTitle"),
+  premise: document.getElementById("premise"),
+  body: document.getElementById("modeBody"),
+  freq: document.getElementById("freq"),
+  station: document.getElementById("stationLabel"),
+  filters: document.getElementById("filters"),
+  spin: document.getElementById("spinBtn"),
+  track: document.getElementById("dialTrack"),
+  poolCount: document.getElementById("poolCount"),
+  seenCount: document.getElementById("seenCount")
+};
+
+let mode = "cuff";
+let active = new Set();
+let bag = [];
+let current = null;
+let spun = 0;
+let timerId = null;
+
+/* ---------- dial ---------- */
+
+function buildDial() {
+  const ticks = 96;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < ticks; i++) {
+    const tick = document.createElement("span");
+    const major = i % 6 === 0;
+    tick.style.height = major ? "26px" : (i % 3 === 0 ? "15px" : "9px");
+    if (major) {
+      tick.classList.add("major");
+    }
+    frag.appendChild(tick);
+  }
+  els.track.appendChild(frag);
+}
+
+function sweepDial() {
+  const drift = Math.round((Math.random() - 0.5) * 260);
+  els.track.style.transform = `translateX(${drift}px)`;
+}
+
+/* ---------- pool ---------- */
+
+function strands() {
+  return [...new Set(TOPICS.map((t) => t.strand))];
+}
+
+function pool() {
+  if (active.size === 0) {
+    return TOPICS;
+  }
+  return TOPICS.filter((t) => active.has(t.strand));
+}
+
+function refillBag() {
+  bag = pool().slice();
+  for (let i = bag.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [bag[i], bag[j]] = [bag[j], bag[i]];
+  }
+  if (current && bag.length > 1 && bag[bag.length - 1] === current) {
+    [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
+  }
+}
+
+function draw() {
+  if (bag.length === 0) {
+    refillBag();
+  }
+  return bag.pop();
+}
+
+/* ---------- render ---------- */
+
+function frequencyFor(topic) {
+  const index = TOPICS.indexOf(topic);
+  return (88.1 + index * 0.3).toFixed(1);
+}
+
+function renderBody(topic) {
+  els.body.innerHTML = "";
+
+  if (mode === "cuff") {
+    const section = document.createElement("div");
+    section.className = "section";
+    section.innerHTML = `
+      <p class="label">Talk about this</p>
+      <p class="honest">${topic.cuff}</p>
+      <div class="timer">
+        <span class="timer-readout" id="readout">1:00</span>
+        <div class="timer-bar"><i id="bar"></i></div>
+        <button class="ghost" id="timerBtn" type="button">Start sixty</button>
+      </div>
+    `;
+    els.body.appendChild(section);
+    wireTimer();
+    return;
+  }
+
+  const beats = topic.beats
+    .map((b, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${b}</li>`)
+    .join("");
+
+  const section = document.createElement("div");
+  section.className = "section";
+  section.innerHTML = `
+    <p class="label">The shape of it</p>
+    <ul class="beats">${beats}</ul>
+  `;
+
+  const honest = document.createElement("div");
+  honest.className = "section";
+  honest.innerHTML = `
+    <p class="label">The part only you can write</p>
+    <p class="honest">${topic.honest}</p>
+  `;
+
+  const opener = document.createElement("div");
+  opener.className = "section";
+  opener.innerHTML = `
+    <p class="label">Open with something like</p>
+    <p class="opener">${topic.opener}</p>
+  `;
+
+  els.body.append(section, honest, opener);
+}
+
+function render(topic) {
+  current = topic;
+  els.title.textContent = topic.title;
+  els.premise.textContent = topic.premise;
+  els.freq.textContent = `${frequencyFor(topic)} FM`;
+  els.station.textContent = `${topic.strand} · ${MODES[mode].label}`;
+  renderBody(topic);
+}
+
+function spin() {
+  stopTimer();
+  sweepDial();
+  els.card.classList.add("tuning");
+  spun += 1;
+  els.seenCount.textContent = String(spun);
+  window.setTimeout(() => {
+    render(draw());
+    els.card.classList.remove("tuning");
+  }, 190);
+}
+
+/* ---------- timer ---------- */
+
+function stopTimer() {
+  if (timerId) {
+    window.clearInterval(timerId);
+    timerId = null;
+  }
+}
+
+function wireTimer() {
+  const btn = document.getElementById("timerBtn");
+  const readout = document.getElementById("readout");
+  const bar = document.getElementById("bar");
+  let left = MODES.cuff.seconds;
+
+  const paint = () => {
+    const m = Math.floor(left / 60);
+    const s = left % 60;
+    readout.textContent = `${m}:${String(s).padStart(2, "0")}`;
+    bar.style.right = `${(left / MODES.cuff.seconds) * 100}%`;
+  };
+
+  paint();
+
+  btn.addEventListener("click", () => {
+    if (timerId) {
+      stopTimer();
+      btn.textContent = "Resume";
+      return;
+    }
+    if (left === 0) {
+      left = MODES.cuff.seconds;
+      paint();
+    }
+    btn.textContent = "Pause";
+    timerId = window.setInterval(() => {
+      left -= 1;
+      paint();
+      if (left <= 0) {
+        stopTimer();
+        btn.textContent = "Again";
+        readout.textContent = "time";
+      }
+    }, 1000);
+  });
+}
+
+/* ---------- controls ---------- */
+
+function buildFilters() {
+  strands().forEach((strand) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.textContent = strand;
+    chip.setAttribute("aria-pressed", "false");
+    chip.addEventListener("click", () => {
+      if (active.has(strand)) {
+        active.delete(strand);
+        chip.setAttribute("aria-pressed", "false");
+      } else {
+        active.add(strand);
+        chip.setAttribute("aria-pressed", "true");
+      }
+      refillBag();
+      els.poolCount.textContent = String(pool().length);
+      spin();
+    });
+    els.filters.appendChild(chip);
+  });
+}
+
+document.querySelectorAll("[data-mode]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    mode = btn.dataset.mode;
+    document.querySelectorAll("[data-mode]").forEach((b) => {
+      b.setAttribute("aria-pressed", String(b === btn));
+    });
+    stopTimer();
+    if (current) {
+      els.station.textContent = `${current.strand} · ${MODES[mode].label}`;
+      renderBody(current);
+    }
+  });
+});
+
+els.spin.addEventListener("click", spin);
+
+document.addEventListener("keydown", (event) => {
+  const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement;
+  if (typing) {
+    return;
+  }
+  if (event.code === "Space") {
+    event.preventDefault();
+    spin();
+  }
+});
+
+buildDial();
+buildFilters();
+refillBag();
+els.poolCount.textContent = String(TOPICS.length);
+render(draw());
+spun = 1;
+els.seenCount.textContent = "1";
+</script>
