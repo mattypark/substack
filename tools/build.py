@@ -65,8 +65,14 @@ def font_css() -> str:
     return "\n".join(blocks)
 
 
+def topics_js() -> str:
+    """The topic pool, minus the CommonJS export used for linting the file alone."""
+    raw = (ROOT / "src" / "topics.js").read_text()
+    return raw.split('if (typeof module !== "undefined")')[0].rstrip()
+
+
 def main() -> None:
-    fragment = SRC.read_text().replace("__FONTS__", font_css())
+    fragment = SRC.read_text().replace("__FONTS__", font_css()).replace("__TOPICS__", topics_js())
 
     artifact = ROOT / "build" / "artifact.html"
     artifact.parent.mkdir(exist_ok=True)

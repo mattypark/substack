@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="A radio-dial spinner for Substack topics drawn from things I have actually built, shipped, quit, or argued about.">
-<title>Tuner — a Substack topic spinner</title>
+<title>Tuner</title>
 </head>
 <body>
 
@@ -39,59 +39,42 @@
 }
 
 :root {
-  --paper: #FFFFFF;
-  --paper-2: #FDFBFA;
-  --rule: #EDE3DE;
-  --rule-strong: #E0CFC7;
-  --ink: #2A2522;
-  --ink-soft: #7A6E67;
-  --ink-faint: #A79A93;
-  --accent: #D97757;
-  --accent-deep: #A83E1C;
-  --accent-wash: #FBF1ED;
-  --shadow: 0 1px 2px rgba(42, 37, 34, 0.05), 0 12px 32px -18px rgba(168, 62, 28, 0.35);
+  --ground: #FFFFFF;
+  --ink: #221F1D;
+  --ink-faint: #A2968F;
+  --accent: #C8613D;
+  --accent-soft: #E9BCA9;
+  --tick: rgba(200, 97, 61, 0.55);
+  --tick-faint: rgba(200, 97, 61, 0.22);
+  --hairline: rgba(34, 31, 29, 0.12);
 
-  --serif: "Anthropic Text", Charter, Georgia, serif;
   --display: "Anthropic Display", "Anthropic Text", Charter, Georgia, serif;
+  --serif: "Anthropic Text", Charter, Georgia, serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-
-  --step--1: 0.8125rem;
-  --step-0: 1.0625rem;
-  --step-1: 1.25rem;
-  --step-2: clamp(1.6rem, 1.3rem + 1.4vw, 2.35rem);
-  --step-3: clamp(2.1rem, 1.4rem + 3.2vw, 3.6rem);
-
-  --measure: 34rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #191817;
-    --paper-2: #201E1D;
-    --rule: #33302E;
-    --rule-strong: #45403D;
-    --ink: #EFEAE6;
-    --ink-soft: #A79A93;
-    --ink-faint: #7A6E67;
-    --accent: #E08C6D;
-    --accent-deep: #F0A184;
-    --accent-wash: #262220;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -18px rgba(0, 0, 0, 0.8);
+    --ground: #17110F;
+    --ink: #F2EAE5;
+    --ink-faint: #6F625B;
+    --accent: #D97757;
+    --accent-soft: #8C4B33;
+    --tick: rgba(217, 119, 87, 0.62);
+    --tick-faint: rgba(217, 119, 87, 0.24);
+    --hairline: rgba(242, 234, 229, 0.12);
   }
 }
 
 :root[data-theme="dark"] {
-  --paper: #191817;
-  --paper-2: #201E1D;
-  --rule: #33302E;
-  --rule-strong: #45403D;
-  --ink: #EFEAE6;
-  --ink-soft: #A79A93;
-  --ink-faint: #7A6E67;
-  --accent: #E08C6D;
-  --accent-deep: #F0A184;
-  --accent-wash: #262220;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -18px rgba(0, 0, 0, 0.8);
+  --ground: #17110F;
+  --ink: #F2EAE5;
+  --ink-faint: #6F625B;
+  --accent: #D97757;
+  --accent-soft: #8C4B33;
+  --tick: rgba(217, 119, 87, 0.62);
+  --tick-faint: rgba(217, 119, 87, 0.24);
+  --hairline: rgba(242, 234, 229, 0.12);
 }
 
 * {
@@ -100,1191 +83,1454 @@
 
 body {
   margin: 0;
-  background: var(--paper);
+  min-height: 100vh;
+  background: var(--ground);
   color: var(--ink);
   font-family: var(--serif);
-  font-size: var(--step-0);
-  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  transition: background 300ms ease, color 300ms ease;
 }
 
-.page {
-  max-width: 46rem;
-  margin: 0 auto;
-  padding: clamp(1.75rem, 1rem + 3vw, 4rem) 1.25rem 4rem;
+.stage {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.75rem, 1rem + 3vw, 3rem);
+  padding: 5rem 1.25rem 4rem;
+  text-align: center;
 }
 
-.label {
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
+/* ---------- theme switch ---------- */
+
+.theme {
+  position: fixed;
+  top: 1.25rem;
+  left: 1.25rem;
+  z-index: 5;
+  appearance: none;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--accent);
+  border-radius: 999px;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color 200ms ease, transform 200ms ease;
 }
 
-/* ---------- masthead ---------- */
-
-.masthead {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+.theme:hover {
+  border-color: var(--accent);
+  transform: rotate(-12deg);
 }
 
-.masthead h1 {
+.theme svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+
+.theme .sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme .sun,
+:root:not([data-theme="light"]) .theme .sun {
+  display: block;
+}
+
+:root[data-theme="dark"] .theme .moon,
+:root:not([data-theme="light"]) .theme .moon {
+  display: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .theme .sun {
+    display: none;
+  }
+
+  :root:not([data-theme="dark"]) .theme .moon {
+    display: block;
+  }
+}
+
+:root[data-theme="light"] .theme .sun {
+  display: none;
+}
+
+:root[data-theme="light"] .theme .moon {
+  display: block;
+}
+
+/* ---------- wordmark ---------- */
+
+.wordmark {
   margin: 0;
   font-family: var(--display);
   font-weight: 300;
-  font-size: var(--step-3);
-  line-height: 1.02;
-  letter-spacing: -0.02em;
-  color: var(--accent-deep);
-  text-wrap: balance;
-}
-
-.masthead h1 em {
-  font-style: italic;
-  color: var(--ink);
-}
-
-.masthead p {
-  margin: 0;
-  max-width: var(--measure);
-  color: var(--ink-soft);
+  font-size: clamp(2.6rem, 1.8rem + 3.4vw, 4.4rem);
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--accent);
 }
 
 /* ---------- dial ---------- */
 
 .dial {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.9rem 0;
+  width: min(100%, 46rem);
   position: relative;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  padding: 1.1rem 0 0.9rem;
+  cursor: pointer;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
   overflow: hidden;
+  display: block;
+}
+
+.dial::before,
+.dial::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.dial::before {
+  left: 0;
+  background: linear-gradient(to right, var(--ground), transparent);
+}
+
+.dial::after {
+  right: 0;
+  background: linear-gradient(to left, var(--ground), transparent);
 }
 
 .dial-track {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  height: 30px;
-  will-change: transform;
-  transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 34px;
+  transition: transform 820ms cubic-bezier(0.18, 0.9, 0.22, 1);
 }
 
-.dial-track span {
-  flex: 0 0 2px;
-  background: var(--rule-strong);
-  border-radius: 1px;
+.dial-track i {
+  flex: 0 0 1.5px;
+  background: var(--tick-faint);
+  border-radius: 2px;
 }
 
-.dial-track span.major {
-  background: var(--accent);
-  opacity: 0.5;
+.dial-track i.major {
+  background: var(--tick);
 }
 
 .needle {
   position: absolute;
-  top: 0.4rem;
+  top: 0.35rem;
   bottom: 0.35rem;
   left: 50%;
-  width: 2px;
+  width: 1.5px;
   background: var(--accent);
   transform: translateX(-50%);
+  z-index: 3;
 }
 
-.needle::after {
+.needle::before {
   content: "";
   position: absolute;
-  top: -3px;
+  top: -4px;
   left: 50%;
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
   transform: translateX(-50%) rotate(45deg);
-  background: var(--accent);
 }
 
-.dial-readout {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-  margin-top: 0.75rem;
-}
-
-.dial-readout .freq {
+.freq {
   font-family: var(--mono);
-  font-size: var(--step--1);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
-  color: var(--accent-deep);
-  letter-spacing: 0.04em;
+  margin: -1.25rem 0 0;
 }
 
-/* ---------- controls ---------- */
+/* ---------- topic ---------- */
 
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1rem;
+.topic {
+  margin: 0;
+  max-width: 24ch;
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: clamp(1.6rem, 1.1rem + 2.4vw, 2.9rem);
+  line-height: 1.22;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-wrap: balance;
+  transition: opacity 220ms ease, transform 220ms ease;
 }
 
-.segmented {
-  display: inline-flex;
-  border: 1px solid var(--rule-strong);
-  border-radius: 999px;
-  padding: 3px;
-  gap: 3px;
-  background: var(--paper-2);
+.topic.swap {
+  opacity: 0;
+  transform: translateY(6px);
 }
 
-.segmented button {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  border-radius: 999px;
-  padding: 0.42rem 0.95rem;
-  font-family: var(--serif);
-  font-size: var(--step--1);
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: background 160ms ease, color 160ms ease;
-}
-
-.segmented button[aria-pressed="true"] {
-  background: var(--accent);
-  color: #FFFFFF;
-}
+/* ---------- spin button ---------- */
 
 .spin {
   appearance: none;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: #FFFFFF;
+  color: var(--ground);
   border-radius: 999px;
-  padding: 0.62rem 1.6rem;
+  padding: 0.6rem 1.35rem 0.6rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
   font-family: var(--serif);
-  font-size: var(--step-0);
-  font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: transform 140ms ease, filter 140ms ease;
+  transition: filter 180ms ease, transform 140ms ease;
 }
 
 .spin:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.06);
 }
 
 .spin:active {
   transform: translateY(1px);
 }
 
-.hint {
-  color: var(--ink-faint);
-  font-size: var(--step--1);
+.spin svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  transition: transform 700ms cubic-bezier(0.18, 0.9, 0.22, 1);
 }
 
-.hint kbd {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  border: 1px solid var(--rule-strong);
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  padding: 0.05rem 0.3rem;
-  color: var(--ink-soft);
+.spin.turning svg {
+  transform: rotate(180deg);
 }
 
-/* ---------- filters ---------- */
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.chip {
-  appearance: none;
-  border: 1px solid var(--rule-strong);
-  background: transparent;
-  color: var(--ink-soft);
-  border-radius: 999px;
-  padding: 0.28rem 0.75rem;
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
-}
-
-.chip[aria-pressed="true"] {
-  background: var(--accent-wash);
-  border-color: var(--accent);
-  color: var(--accent-deep);
-}
-
-/* ---------- card ---------- */
-
-.card {
-  border: 1px solid var(--rule);
-  border-top: 3px solid var(--accent);
-  background: var(--paper-2);
-  border-radius: 2px;
-  padding: clamp(1.4rem, 1rem + 2vw, 2.4rem);
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  box-shadow: var(--shadow);
-}
-
-.card.tuning {
-  opacity: 0.25;
-  transition: opacity 180ms ease;
-}
-
-.card-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: baseline;
-}
-
-.prompt-title {
-  margin: 0;
-  font-family: var(--display);
-  font-weight: 300;
-  font-size: var(--step-2);
-  line-height: 1.14;
-  letter-spacing: -0.015em;
-  color: var(--accent-deep);
-  text-wrap: balance;
-}
-
-.premise {
-  margin: 0;
-  max-width: var(--measure);
-  font-size: var(--step-1);
-  line-height: 1.5;
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding-top: 1.1rem;
-  border-top: 1px solid var(--rule);
-}
-
-.beats {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  max-width: var(--measure);
-}
-
-.beats li {
-  display: grid;
-  grid-template-columns: 1.6rem 1fr;
-  gap: 0.35rem;
-  color: var(--ink);
-}
-
-.beats li span {
+.spin kbd {
   font-family: var(--mono);
   font-size: 0.7rem;
-  color: var(--accent);
-  padding-top: 0.32rem;
-}
-
-.honest {
-  margin: 0;
-  max-width: var(--measure);
-  font-style: italic;
-  color: var(--ink);
-}
-
-.opener {
-  margin: 0;
-  max-width: var(--measure);
-  padding-left: 0.9rem;
-  border-left: 2px solid var(--accent);
-  color: var(--ink-soft);
-}
-
-/* ---------- timer ---------- */
-
-.timer {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  flex-wrap: wrap;
-}
-
-.timer-readout {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 1.5rem;
-  color: var(--accent-deep);
-  min-width: 4.2rem;
-}
-
-.timer-bar {
-  flex: 1 1 12rem;
-  height: 3px;
-  background: var(--rule);
-  position: relative;
-  overflow: hidden;
-}
-
-.timer-bar i {
-  position: absolute;
-  inset: 0 100% 0 0;
-  background: var(--accent);
-  transition: right 250ms linear;
-}
-
-.ghost {
-  appearance: none;
-  border: 1px solid var(--rule-strong);
-  background: transparent;
-  color: var(--ink-soft);
-  border-radius: 999px;
-  padding: 0.4rem 0.95rem;
-  font-family: var(--serif);
-  font-size: var(--step--1);
-  cursor: pointer;
-  transition: border-color 150ms ease, color 150ms ease;
-}
-
-.ghost:hover {
-  border-color: var(--accent);
-  color: var(--accent-deep);
-}
-
-/* ---------- footer ---------- */
-
-.colophon {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  justify-content: space-between;
-  border-top: 1px solid var(--rule);
-  padding-top: 1rem;
-  color: var(--ink-faint);
-  font-size: var(--step--1);
-}
-
-.colophon a {
-  color: var(--accent-deep);
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 0.05rem 0.32rem;
+  opacity: 0.75;
 }
 
 :focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
+  outline-offset: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 1ms !important;
-    animation-duration: 1ms !important;
   }
 }
 </style>
 
-<main class="page">
+<button class="theme" id="themeBtn" type="button" aria-label="Switch between light and dark">
+  <svg class="sun" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="4.6"></circle>
+    <path d="M12 1.4v3.1M12 19.5v3.1M22.6 12h-3.1M4.5 12H1.4M19.5 4.5l-2.2 2.2M6.7 17.3l-2.2 2.2M19.5 19.5l-2.2-2.2M6.7 6.7L4.5 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"></path>
+  </svg>
+  <svg class="moon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M20.5 14.6A8.8 8.8 0 0 1 9.4 3.5a8.9 8.9 0 1 0 11.1 11.1z"></path>
+  </svg>
+</button>
 
-  <header class="masthead">
-    <p class="label">Off the cuff / deep cut · <span id="poolCount">36</span> topics you have actually lived</p>
-    <h1>Tuner<em>.</em></h1>
-    <p>Spin a topic pulled from your own year of building. Talk it out in sixty seconds, or take the long version and write it.</p>
-  </header>
+<main class="stage">
 
-  <div class="dial" aria-hidden="true">
-    <div class="dial-track" id="dialTrack"></div>
-    <div class="needle"></div>
-  </div>
+  <h1 class="wordmark">Tuner.</h1>
 
-  <div class="dial-readout">
-    <span class="freq" id="freq">— — . —</span>
-    <span class="label" id="stationLabel">stand by</span>
-  </div>
+  <button class="dial" id="dial" type="button" aria-label="Spin for a new topic">
+    <span class="dial-track" id="track"></span>
+    <span class="needle"></span>
+  </button>
 
-  <div class="controls">
-    <button class="spin" id="spinBtn" type="button">Spin</button>
-    <div class="segmented" role="group" aria-label="Mode">
-      <button type="button" data-mode="cuff" aria-pressed="true">Off the cuff</button>
-      <button type="button" data-mode="deep" aria-pressed="false">Deep cut</button>
-    </div>
-    <span class="hint">press <kbd>space</kbd> to respin</span>
-  </div>
+  <p class="freq" id="freq">88.1 FM</p>
 
-  <div class="filters" id="filters" role="group" aria-label="Filter by strand"></div>
+  <p class="topic" id="topic" aria-live="polite">Press space to begin.</p>
 
-  <article class="card" id="card" aria-live="polite">
-    <div class="card-head">
-      <h2 class="prompt-title" id="promptTitle">Hit spin.</h2>
-    </div>
-    <p class="premise" id="premise">Every topic in here is something you have already done, broken, quit, or argued about. The spinner just decides which one you have to be honest about today.</p>
-    <div id="modeBody"></div>
-  </article>
-
-  <footer class="colophon">
-    <span>Sound taken from <a href="https://www.unprompted.cool/" target="_blank" rel="noopener">unprompted.cool</a> — spin, then speak.</span>
-    <span>Anthropic Serif · <span id="seenCount">0</span> spun this session</span>
-  </footer>
+  <button class="spin" id="spin" type="button">
+    <svg id="mark" viewBox="0 0 24 24" aria-hidden="true"></svg>
+    <span id="spinLabel">Press <kbd>space</kbd> to begin</span>
+  </button>
 
 </main>
 
 <script>
+/* Tuner topic pool. Each entry is one spinnable Substack prompt.
+   Grouped by strand only for authoring sanity — the spinner flattens them. */
+
 const TOPICS = [
-  {
-    strand: "shipping",
-    title: "The project I abandoned at ninety percent",
-    premise: "The last ten percent is where you find out whether you wanted the thing or the feeling of building the thing.",
-    cuff: "Name the project. Say exactly which task you kept not doing, and what that task was really asking of you.",
-    beats: [
-      "The repo, the date it went quiet, and the last commit message.",
-      "What the remaining work actually was — usually boring, usually public-facing.",
-      "The rule you now use to tell a dead project from a paused one."
-    ],
-    honest: "Abandoning at ninety percent is not a time problem. It is the last moment you can still call it unfinished instead of unwanted.",
-    opener: "There is a folder on my laptop with eleven projects in it that are all one afternoon from being done."
-  },
-  {
-    strand: "shipping",
-    title: "Forty repos, three users",
-    premise: "You have built more software this year than most adults you know. Almost nobody uses it. Write about what that is worth.",
-    cuff: "Argue both sides for thirty seconds each: building as portfolio, and building as procrastination.",
-    beats: [
-      "Count the repos honestly, including the embarrassing ones.",
-      "Separate the ones built to learn from the ones built to be used — different scoreboards.",
-      "What changed the first time a stranger actually opened one."
-    ],
-    honest: "Reps are real. So is the fact that shipping to nobody protects you from finding out you were wrong.",
-    opener: "My GitHub looks like a career. My analytics look like a group chat."
-  },
-  {
-    strand: "shipping",
-    title: "A deadline does what motivation cannot",
-    premise: "Every project that shipped had a date attached to it. Every one that did not, did not.",
-    cuff: "Pick the last thing you finished. Reverse-engineer why. Was it discipline, or was somebody waiting?",
-    beats: [
-      "Two projects, same excitement level, one deadline between them.",
-      "What a real deadline is: someone who notices when you miss it.",
-      "How you now manufacture deadlines when nobody hands you one."
-    ],
-    honest: "You are not lazy. You are unobserved, and those look identical from the inside.",
-    opener: "I finished a whole app in four days for a competition and let a better idea rot for four months."
-  },
-  {
-    strand: "shipping",
-    title: "Rewriting is cheaper than deciding",
-    premise: "You will refactor for a week to avoid one uncomfortable product choice.",
-    cuff: "Describe the last refactor you did. Then say what decision it let you postpone.",
-    beats: [
-      "The refactor: what you told yourself it was for.",
-      "The actual open question underneath it — who is this for, what does it cost, will anyone pay.",
-      "The move: how long you now let yourself rearrange before you must choose."
-    ],
-    honest: "Clean code is the most respectable way to stall.",
-    opener: "I rebuilt the same settings page three times to avoid asking one person whether they wanted the product."
-  },
-  {
-    strand: "shipping",
-    title: "Nobody asked for this",
-    premise: "Most of what you build has one user. Make the case for software built for an audience of one.",
-    cuff: "Defend your most useless tool for a minute, as if to an investor. Then as if to yourself.",
-    beats: [
-      "The tool nobody wanted that you use every single day.",
-      "Why scratch-your-own-itch software is better built than anything you built for a hypothetical user.",
-      "Where the argument breaks: the itch you scratched was never a market."
-    ],
-    honest: "Building for yourself is the fastest way to learn and the slowest way to matter. Both are true at once.",
-    opener: "The most-used thing I have ever written has exactly one user and it will never have two."
-  },
-  {
-    strand: "shipping",
-    title: "My most-used tool is forty lines long",
-    premise: "The small script beats the ambitious platform, and you have the receipts.",
-    cuff: "Read the script out loud, roughly. Explain why it survived when bigger things did not.",
-    beats: [
-      "What it does, in one sentence, with no architecture words.",
-      "What you almost built instead, and how many weeks that would have taken.",
-      "The pattern: solve the ten-second annoyance, not the ten-year vision."
-    ],
-    honest: "Ambition is what you build when you are trying to impress the version of yourself that reads Hacker News.",
-    opener: "It has no tests, no README, and no name. I run it forty times a day."
-  },
 
-  {
-    strand: "agents",
-    title: "I gave an AI access to my messages",
-    premise: "You built an agent that reads and writes as you. Write about the exact moment it went too far.",
-    cuff: "Tell the story of one message it sent or drafted that made you flinch. Then say what you changed.",
-    beats: [
-      "What the agent was allowed to do, before you knew better.",
-      "The moment of flinch — the message, the tone, the wrongness.",
-      "The permission model you use now, in plain words, not config."
-    ],
-    honest: "Delegating your voice is different from delegating your work, and the difference does not announce itself until afterward.",
-    opener: "It sounded like me. That was the problem."
-  },
-  {
-    strand: "agents",
-    title: "What I stopped learning when I started using AI",
-    premise: "There are skills you were three weeks from having when a model made them optional.",
-    cuff: "Name one thing you can no longer do unassisted that you could have learned. Is that a loss? Sixty seconds.",
-    beats: [
-      "The specific skill: regex, SQL joins, CSS layout, whatever it actually is.",
-      "The moment you noticed the gap — usually offline, usually under pressure.",
-      "Your rule for what you refuse to hand over, and why that list is short."
-    ],
-    honest: "Every tool trades a skill for a speed. Pretending you are only gaining is how you end up unable to debug your own output.",
-    opener: "I can ship a full-stack app in a weekend and I had to look up how to reverse a string."
-  },
-  {
-    strand: "agents",
-    title: "The prompt is the product",
-    premise: "You have shipped things where the only real intellectual property was three paragraphs of instructions.",
-    cuff: "Describe your best prompt like it is a piece of engineering. What makes it good?",
-    beats: [
-      "A product of yours where the model was commodity and the prompt was everything.",
-      "What separates a prompt that works from one that works twice — constraints, examples, refusal cases.",
-      "Whether this is a real moat or a temporary one, and how you would know."
-    ],
-    honest: "Writing has quietly become the highest-leverage engineering skill and half of engineering has not noticed.",
-    opener: "The whole app is a text box, a model I did not train, and four hundred words I rewrote ninety times."
-  },
-  {
-    strand: "agents",
-    title: "AI made me faster at the wrong things",
-    premise: "Speed compounds in whatever direction you were already pointed. Yours was not always right.",
-    cuff: "Pick a week where you produced enormous output and it did not matter. Diagnose it.",
-    beats: [
-      "The output: files, features, commits, all real.",
-      "The thing you did not do that week — talk to a user, cut scope, decide.",
-      "How you now spend the time the tools gave back."
-    ],
-    honest: "A faster car does not fix a wrong turn. It commits you to it harder.",
-    opener: "I shipped nine features that month. None of them were the one feature."
-  },
-  {
-    strand: "agents",
-    title: "Reading code I did not write, that I shipped",
-    premise: "There is code in production under your name that you understand at a glance and could not have authored.",
-    cuff: "Is that ownership? Argue it out loud. Do not resolve it too fast.",
-    beats: [
-      "The file, and what happened when it broke.",
-      "The line between reading fluently and knowing — where you actually sit.",
-      "The discipline you now use before you merge: read every line, or run every path."
-    ],
-    honest: "You own what you ship, whether or not you typed it. Debugging is when the bill arrives.",
-    opener: "The bug was in a function I had approved without reading, three weeks earlier, at midnight."
-  },
-  {
-    strand: "agents",
-    title: "The agent that only works when I am watching",
-    premise: "Autonomy demos beautifully and fails quietly. You have watched both.",
-    cuff: "Explain the gap between the demo run and the unattended run to someone non-technical.",
-    beats: [
-      "The demo: what it did, why it looked like magic.",
-      "The unattended failure — silent, plausible, wrong.",
-      "What you build now instead: checkpoints, refusals, small blast radius."
-    ],
-    honest: "Every impressive autonomous demo is a supervised one. The interesting work is what happens on hour six.",
-    opener: "It ran perfectly for eleven minutes, which is exactly as long as I was looking at it."
-  },
+/* ---------- making & shipping ---------- */
+"The project you abandoned at ninety percent, and what the last ten percent was really asking of you",
+"What a deadline does that motivation cannot",
+"The difference between a dead project and a paused one",
+"Why rewriting is cheaper than deciding",
+"The thing you built that nobody asked for and you use every day",
+"Your most-used tool is forty lines long. Why the small thing beat the ambitious one",
+"Shipping something you know is not finished",
+"The feature you cut that nobody missed",
+"What you learned from the version nobody saw",
+"Building for an audience of one",
+"The first user who was not you",
+"When perfectionism is just fear wearing a nicer outfit",
+"The bug that taught you more than the feature",
+"Why you keep starting instead of finishing",
+"The project you are embarrassed by and should not be",
+"What your unfinished folder says about you",
+"Working on something for a year before anyone noticed",
+"The moment a side project became real",
+"Killing something you loved because it was not working",
+"How you decide what to build next",
+"The difference between hard and tedious, and why you avoid the wrong one",
+"What you would build if nobody could see it",
+"Copying something exactly as a way to learn it",
+"The tutorial you followed versus the thing you built badly on your own",
+"Why the second version is always worse before it is better",
+"The constraint that made the work better",
+"Working with the wrong tool on purpose",
+"What breaks when a project gets its tenth user",
+"The demo that worked and the product that did not",
+"Naming things: why it takes longer than building them",
+"The prototype you should have thrown away",
+"When to rebuild from scratch, and how you know",
+"The maintenance nobody warned you about",
+"Why the boring part is the product",
+"Documentation as a form of thinking",
+"The thing you automated that you should have just done twice",
+"What you keep in a scratch file",
+"Working on something with no idea if it will work",
+"The moment you realized the idea was not the hard part",
+"Why you ship on Fridays, or refuse to",
+"Reading your own code from a year ago",
+"The library you almost wrote before you found it",
+"Choosing boring technology on purpose",
+"The feature request that changed how you saw the product",
+"Building the thing you wish existed and finding out why it does not",
+"What happens when the fun part ends",
+"The project that was really about avoiding another project",
+"Working in public before it is good",
+"The version number that meant something to nobody but you",
+"How you decide something is done",
+"Why every estimate you make is wrong in the same direction",
+"The task you have moved to tomorrow eleven times",
+"What a launch actually feels like",
+"The silence after you ship",
+"Making something that only works on your machine",
+"Why you build the settings page last",
+"The thing you learned by breaking production",
+"What you would tell yourself before the first project",
+"Building alone versus building with one other person",
+"The collaborator who made you better and the one who made you slower",
+"When to ask for help and why you waited too long",
+"The code review that stung and was right",
+"Why you defend decisions you no longer believe in",
+"The feature you added because a competitor had it",
+"Building for a user you have never met",
+"What you assume about people who use your work",
+"The support message that changed the roadmap",
+"Why nobody reads the onboarding you wrote",
+"Designing for the person who is in a hurry",
+"The metric you optimized that made the product worse",
+"What you stopped measuring, and what improved",
+"Why the dashboard did not help",
+"Building something that works offline",
+"The thing that only breaks at 2am",
+"What reliability actually costs",
+"The trade-off you make every time without noticing",
+"Speed versus correctness, told through one specific decision",
+"Why you cache things you should just make fast",
+"The system that got too clever",
+"Simplicity as a discipline, not a style",
+"What you deleted that made everything better",
+"The abstraction you introduced too early",
+"Copy and paste three times before you refactor: does the rule hold",
+"When duplication is honest",
+"The convention you follow that you cannot justify",
+"Style guides as a way to stop arguing",
+"The pull request that took a week to review",
+"Why small changes are easier to trust",
+"What continuous means when nobody is watching",
+"Testing the thing you are most afraid of",
+"The test that gave you false confidence",
+"Why you write tests after, and whether that is defensible",
+"The refactor that was worth it",
+"The refactor that was not",
+"Legacy code as somebody's best effort under pressure",
+"Inheriting a codebase and the archaeology that follows",
+"What good comments actually explain",
+"The README as a promise",
+"Open sourcing something and what you learned from the first issue",
+"The contributor who improved your project and disappeared",
+"Licensing, credit, and the ethics of building on other people's work",
+"Why you stopped using the framework everyone recommended",
+"The stack you would choose again",
 
-  {
-    strand: "internet",
-    title: "Thirty million views and a quiet inbox",
-    premise: "Reach and relationships are different currencies, and you have far more of one.",
-    cuff: "What did the big numbers actually get you? Be specific, and be unflattering if it is true.",
-    beats: [
-      "The numbers, stated plainly, without the flex framing.",
-      "What converted: opportunities, friends, money, or nothing.",
-      "What you would trade the whole follower count for."
-    ],
-    honest: "Attention is not access. Nobody tells you that the second one has to be earned separately.",
-    opener: "A video did seven figures of views and the most useful thing that came out of it was one reply."
-  },
-  {
-    strand: "internet",
-    title: "Posting as the youngest person in the room",
-    premise: "Your age is either the whole story or completely irrelevant, and you do not get to choose which.",
-    cuff: "When has being young helped you? When has it been the only thing anyone saw? A minute.",
-    beats: [
-      "The first time your age was the headline instead of the work.",
-      "How that shapes what you post — and what you leave out to be taken seriously.",
-      "The version of your work that would survive the age being removed."
-    ],
-    honest: "Being impressive for your age has an expiry date, and the work has to outlive it.",
-    opener: "Every intro starts with a number that has nothing to do with what I built."
-  },
-  {
-    strand: "internet",
-    title: "One hundred cold emails, honestly counted",
-    premise: "You have actually run the experiment. Publish the real reply rate and what moved it.",
-    cuff: "Recite your best cold email from memory. Then say why it worked.",
-    beats: [
-      "The raw numbers: sent, opened, replied, met.",
-      "The three lines that changed everything — specificity, brevity, and one real reason it is them.",
-      "What you got wrong for the first fifty."
-    ],
-    honest: "Nobody owes you a reply. The email that works is the one that costs the reader less than it cost you.",
-    opener: "Ninety-one people ignored me. The nine who did not are why anything happened this year."
-  },
-  {
-    strand: "internet",
-    title: "Building in public without performing",
-    premise: "There is a version of documenting your work that is honest, and a version that is content. You have done both.",
-    cuff: "Where is your line? Say it out loud and then stress-test it.",
-    beats: [
-      "A post you made that was true and useful.",
-      "A post you made that was engineered, and what it cost in accuracy.",
-      "The rule you keep now: what gets published, what stays in the repo."
-    ],
-    honest: "The incentive is always to overstate the arc. Real building is mostly flat with two good days in it.",
-    opener: "I have written the sentence 'excited to share' about work I was not excited about."
-  },
-  {
-    strand: "internet",
-    title: "The follower number stopped meaning anything",
-    premise: "There was a specific day the metric stopped landing. Write about that day.",
-    cuff: "What replaced it? Answer honestly — something replaced it.",
-    beats: [
-      "What the number used to do for you.",
-      "The day it did not — the milestone you hit and felt nothing about.",
-      "The metric you actually watch now, and whether it is any healthier."
-    ],
-    honest: "Every metric you chase eventually becomes furniture. The question is whether the next one is better chosen.",
-    opener: "I passed a number I had wanted for two years and checked it twice, then forgot about it by dinner."
-  },
+/* ---------- AI & tools ---------- */
+"What you stopped learning when you started using AI",
+"The skill you handed over and want back",
+"Why the prompt became the product",
+"AI made you faster at the wrong things",
+"Reading code you did not write, that you shipped",
+"The agent that only works when you are watching",
+"Giving software permission to speak as you",
+"The moment a model was confidently, plausibly wrong",
+"How you check work you cannot fully verify",
+"What you refuse to delegate to a machine",
+"The task you thought was creative until it was automated",
+"Where AI is genuinely better than you, honestly stated",
+"Why every AI-generated interface looks the same",
+"The tells you use to spot generated writing",
+"What taste means when execution is cheap",
+"The new bottleneck: knowing what is worth making",
+"Using AI to learn versus using it to skip learning",
+"Explaining your work to a model and understanding it better",
+"The conversation with a model that changed your mind",
+"When the tool is confident and you are not",
+"What it feels like to be the slowest part of your own workflow",
+"The job you thought was safe",
+"Talking to people who are frightened of this, without dismissing them",
+"The energy, water, and labor behind the thing you use casually",
+"Whose work trained the tool you rely on",
+"Attribution when everything is remixed",
+"The line between assistance and authorship",
+"Publishing something a model largely wrote",
+"Why you disclose, or why you do not",
+"The essay you did not write because a model wrote a worse one first",
+"What originality means now",
+"Automating a person's job, including your own",
+"The workflow you rebuilt three times this year",
+"Tool switching as procrastination",
+"Why your note system keeps collapsing",
+"The app you paid for and used twice",
+"Building your own tool instead of buying one",
+"What a good default is worth",
+"The keyboard shortcut that saved you a hundred hours",
+"Why your terminal looks the way it does",
+"Configuration as self-portrait",
+"The setting you changed that changed your behavior",
+"Notifications: what you turned off and what happened",
+"The device you stopped carrying",
+"What your home screen says about your priorities",
+"Digital hoarding and the tabs you will never read",
+"Search as a memory prosthetic",
+"The file you cannot find and the system that failed you",
+"Naming conventions as future kindness",
+"Backups, and the loss that taught you",
+"The password manager conversation you keep having with family",
+"Privacy decisions you make for other people",
+"What you would not put in a cloud",
+"The permission you granted without reading",
+"Terms of service as fiction",
+"What an account deletion actually does",
+"Owning your archive",
+"Why you self-host something inconvenient",
+"The service that shut down and took your work with it",
+"Building for a platform that can change the rules",
+"Writing somewhere you cannot be deplatformed",
+"The API that broke your product overnight",
+"Depending on a company that does not know you exist",
+"What open means in practice",
+"Reading the source of something you use daily",
+"The bug report you filed that got fixed",
+"Contributing to something bigger than your own work",
+"How you decide a tool is trustworthy",
+"The update that made something worse",
+"Software that got heavier every year",
+"Why old software still works and new software does not",
+"Speed as a feature people feel but cannot name",
+"The website that loads instantly and what it taught you",
+"Accessibility as a design constraint that improves everything",
+"Building for someone using a screen reader",
+"The interface you could not use one-handed",
+"Designing for a bad connection",
+"What you assume about your user's device",
+"The default that excluded someone",
+"Localization and the assumptions inside your copy",
+"Time zones as a humility lesson",
+"The date format argument and why it matters",
+"Units, currencies, and other quiet assumptions",
+"Writing error messages that respect the reader",
+"The empty state as a first impression",
+"Loading states and the honesty of a progress bar",
+"Undo as the most generous feature",
+"Confirmation dialogs and the illusion of safety",
+"The destructive action you made too easy",
+"Designing for the tired user",
+"What your product does at 3am",
+"The feature only power users find",
+"Keyboard-first software and who it leaves behind",
+"Why you still use a text file for the important thing",
+"Plain text as a bet on the future",
+"The format you chose that outlived the app",
+"Exporting your data and finding out what you actually own",
+"The migration that took a weekend and a year of nerve",
+"Version control for things that are not code",
+"What software taught you about writing",
+"What writing taught you about software",
 
-  {
-    strand: "school",
-    title: "School and the internet teach opposite lessons",
-    premise: "One rewards completeness. The other rewards being early and roughly right.",
-    cuff: "Take one homework assignment and one shipped project. Compare what each rewarded.",
-    beats: [
-      "The classroom rule: finish everything, on time, to a rubric.",
-      "The internet rule: publish the useful half now, fix it in the replies.",
-      "Where each is right, and the cost of confusing them."
-    ],
-    honest: "The skill is knowing which room you are in. People who only learn one rule fail badly in the other.",
-    opener: "I got points off for an unfinished lab the same week an unfinished tool got its first real user."
-  },
-  {
-    strand: "school",
-    title: "The four-year plan I made at fifteen",
-    premise: "You wrote out a plan for years you have not lived. Publish it and interrogate it.",
-    cuff: "Read the plan out loud. Which part is already wrong?",
-    beats: [
-      "What the plan actually says — courses, projects, targets, the honest version.",
-      "The assumptions holding it up, especially the ones about the world staying still.",
-      "What the plan is really for: direction, or reassurance."
-    ],
-    honest: "A plan made at fifteen is not a prediction. It is a way of deciding what you refuse to drift into.",
-    opener: "I have a spreadsheet with seven tabs describing a person who does not exist yet."
-  },
-  {
-    strand: "school",
-    title: "Grades are a lagging indicator",
-    premise: "By the time the number arrives, the learning it measured happened months ago or never happened at all.",
-    cuff: "What do you actually use to tell whether you learned something? Sixty seconds, no rubric words.",
-    beats: [
-      "A class where the grade and the learning came apart.",
-      "The real signals: can you rebuild it, explain it, or find the bug in it.",
-      "What you would keep from school if you could keep only one thing."
-    ],
-    honest: "You can pass without learning and learn without passing, and both are common enough to be boring.",
-    opener: "I aced a unit I could not explain to a friend two weeks later."
-  },
-  {
-    strand: "school",
-    title: "Building on a shared laptop",
-    premise: "Constraints you did not choose shape the work more than the ones you did.",
-    cuff: "Describe your actual working setup, and what it forces you to do differently.",
-    beats: [
-      "The real conditions: hours, machine, interruptions.",
-      "What that ruled out, and what it accidentally taught — small commits, fast context switching, writing things down.",
-      "The advice that assumes a quiet room and infinite compute, and why it is useless to you."
-    ],
-    honest: "Most productivity advice is written by people describing their circumstances and calling it discipline.",
-    opener: "My deep work window is whenever nobody else needs the computer."
-  },
+/* ---------- internet, audience & attention ---------- */
+"Big numbers and a quiet inbox: reach versus relationships",
+"The post that did well and changed nothing",
+"The post that did badly and changed everything",
+"What you stopped posting and why",
+"Writing for strangers versus writing for twelve people",
+"The comment that stayed with you",
+"Blocking someone and what it revealed",
+"The account you follow that makes you worse",
+"An honest audit of what you consume",
+"The feed you left and what you missed",
+"Why you keep an app you dislike",
+"The scroll you cannot account for",
+"Attention as the thing you actually spend",
+"Being early to something and what it bought you",
+"Getting a platform's algorithm right by accident",
+"Optimizing for a machine and losing the reader",
+"The headline you regret",
+"Writing a title that is true and still gets read",
+"Clickbait you fell for and what it taught you",
+"The thing you shared without reading",
+"Being wrong publicly and correcting it",
+"The correction nobody saw",
+"Deleting a post versus letting it stand",
+"Your oldest post online and whether you still agree with it",
+"Growing up in public",
+"The internet's memory versus your own",
+"Anonymity, pseudonymity, and what each frees you to say",
+"The thing you would only write under a different name",
+"Writing about people who can read it",
+"Permission, consent, and telling shared stories",
+"What you owe the people in your essays",
+"The detail you changed to protect someone",
+"When honesty becomes exposure",
+"Vulnerability as a strategy and why it curdles",
+"The post that was too raw to publish",
+"Waiting a year before writing about something",
+"Distance as a writing tool",
+"The essay you can only write after it stops hurting",
+"Journaling versus publishing",
+"Why you write at all",
+"The reader you imagine while writing",
+"Publishing on a schedule versus when it is ready",
+"Consistency, and what it costs in quality",
+"The newsletter you unsubscribed from and why",
+"What makes you open an email from a stranger",
+"The subject line as a promise",
+"Paywalls and what you actually owe subscribers",
+"Charging for writing for the first time",
+"The reader who paid and what changed",
+"Free work as protection from a verdict",
+"Audience capture: writing what your readers already believe",
+"The opinion you softened and should not have",
+"Changing your mind in front of an audience",
+"The take you no longer hold",
+"Arguing in good faith with someone who is not",
+"When to engage and when to close the tab",
+"The pile-on you watched and did not join",
+"Context collapse: one message, five audiences",
+"Writing for people who will read it out of context",
+"Screenshots as permanent record",
+"The group chat as the last honest place online",
+"Small internets and why they feel better",
+"Forums, and what we lost when they died",
+"The community that raised you online",
+"Lurking as a legitimate way to participate",
+"Your first internet friend",
+"Meeting an online friend in person",
+"Parasocial relationships from both sides",
+"The creator you outgrew",
+"What you learned by unfollowing everyone",
+"Curating a feed like a diet",
+"Reading long things again, deliberately",
+"The book you finished after a year of not finishing books",
+"Attention span as a muscle or a myth",
+"Boredom and what it is for",
+"The walk without headphones",
+"Doing one thing at a time as a radical act",
+"The phone in another room experiment",
+"Trying to be unreachable for a day",
+"Being reachable as a job requirement",
+"The email you took three weeks to answer",
+"Inbox zero and the people it does not serve",
+"Auto-replies as boundaries",
+"Saying no in writing",
+"The DM you did not send",
+"Cold outreach: the real reply rate",
+"The message that worked and why",
+"Networking without the word networking",
+"Asking a stranger for something",
+"The favor you were granted and never repaid",
+"Introductions as currency",
+"The person who vouched for you",
+"Being vouched for before you were ready",
+"Referral, luck, and the myth of the meritocratic inbox",
+"What a warm introduction actually is",
+"Building a reputation you have to keep",
+"The gap between how you are perceived and what you do",
+"Personal brand as a cage",
+"Retiring an identity you built online",
+"Starting over on a new platform",
+"The account you deleted and do not miss",
+"Writing offline first",
 
-  {
-    strand: "leading",
-    title: "Passionate over qualified",
-    premise: "You have chosen people by how much they cared instead of what they had done. Defend it with evidence.",
-    cuff: "Pick one person you took a chance on. What happened? Sixty seconds, no résumé words.",
-    beats: [
-      "The two candidates: one credentialed, one obsessed.",
-      "What actually predicted output in your team — showing up, replying, finishing.",
-      "Where the heuristic failed you, because it has."
-    ],
-    honest: "Caring is not a substitute for skill. It is just a better predictor of whether skill will arrive.",
-    opener: "The best person on my team had nothing on paper and answered every message within the hour."
-  },
-  {
-    strand: "leading",
-    title: "The first time I had to tell someone no",
-    premise: "Rejecting a person who wanted in is a specific kind of hard, and you have done it.",
-    cuff: "Say what you actually wrote, or wish you had written. Then say what you learned about clarity.",
-    beats: [
-      "The situation, without making yourself the hero of it.",
-      "The two bad options: vague kindness, or clear disappointment.",
-      "What you would say now, and why the honest version is the kinder one."
-    ],
-    honest: "Softening a no does not protect them. It protects you, and it costs them time.",
-    opener: "I rewrote the rejection email six times and every version was about me."
-  },
-  {
-    strand: "leading",
-    title: "Nobody joins for the mission statement",
-    premise: "You wrote the mission. Then you watched what actually made people show up.",
-    cuff: "What made your first real member commit? Be specific. It was not the deck.",
-    beats: [
-      "The mission as written versus the reason people give when you ask them.",
-      "The real recruiting unit: one person, one conversation, one clear thing to do this week.",
-      "How the mission earns its keep later — for retention, not recruitment."
-    ],
-    honest: "People join people and specific tasks. The mission is what keeps them once the novelty runs out.",
-    opener: "I spent three weeks on a mission statement and got every member from a text message."
-  },
-  {
-    strand: "leading",
-    title: "Delegation feels like losing",
-    premise: "Handing off work you are good at feels like giving away the part you liked. Write through that.",
-    cuff: "Name the task you will not delegate. Interrogate the reason for a full minute.",
-    beats: [
-      "The first thing you handed off and how badly you wanted to take it back.",
-      "What it cost when you did take it back.",
-      "The test: is this mine because it needs me, or because I like it?"
-    ],
-    honest: "Doing it yourself is faster today and fatal by month three. Every founder learns this on the same schedule.",
-    opener: "I gave the task away on Monday and had quietly redone it by Thursday."
-  },
+/* ---------- work, money & ambition ---------- */
+"Charging for something for the first time",
+"The price you were too scared to say out loud",
+"Raising your rate and losing a client you were glad to lose",
+"The work you did for free that paid off, and the work that did not",
+"Being underpaid and knowing it",
+"Talking about money with a friend",
+"What your parents taught you about money without saying it",
+"The first thing you saved for",
+"The purchase you still think about",
+"Buying quality once versus cheap three times",
+"The subscription audit nobody wants to do",
+"What you spend on convenience",
+"Time versus money at different points in your life",
+"The job you took for the wrong reason",
+"Quitting before you had the next thing",
+"The interview that told you everything about the company",
+"Questions you now ask in interviews",
+"The offer you turned down",
+"Negotiating when you have no leverage",
+"What a title is actually worth",
+"Being the youngest person in the room",
+"Being the least experienced and most useful",
+"Imposter feelings versus being genuinely new",
+"The mentor who did not know they were one",
+"Advice you were given that only works if you are already good",
+"The advice you give that you do not follow",
+"Survivor stories and the first mile nobody remembers",
+"Luck, timing, and the story we tell instead",
+"The opportunity you got because you were in a room",
+"How you got into the room",
+"Ambition as an inherited script",
+"What you want versus what you were trained to want",
+"The goal you achieved that felt like nothing",
+"Moving the goalposts on yourself",
+"Enough, defined concretely",
+"The number that would change your decisions",
+"Financial independence as a fantasy of control",
+"Retirement, if the work is the point",
+"Work you would do unpaid, and whether that is a trap",
+"The hobby you monetized and ruined",
+"Keeping one thing amateur on purpose",
+"Craft versus career",
+"The résumé line that is a lie by omission",
+"Explaining a gap year, a failure, or a detour",
+"The failure you learned nothing from",
+"Post-mortems and the ones you skipped",
+"Firing yourself from a role you were bad at",
+"Delegating something you were proud of",
+"The first person you managed",
+"Telling someone no",
+"Giving feedback that lands",
+"Receiving feedback badly, in detail",
+"The performance review that was accurate",
+"Being managed well, once",
+"The meeting that should have been a message",
+"Meetings you protect and the ones you cancel",
+"Calendars as a statement of values",
+"Saying yes too fast",
+"The commitment you honored past its usefulness",
+"Sunk cost in a relationship, a project, or a career",
+"The exit you planned for and the one you did not",
+"Non-competes, NDAs, and what you cannot write about",
+"Building something on company time",
+"Side projects and the ethics of your best hours",
+"What you owe an employer",
+"What an employer owes you",
+"Layoffs, from the inside",
+"Watching a company change after it grew",
+"The startup that was a family until it was not",
+"Equity explained honestly to someone who has never had it",
+"Fundraising as storytelling",
+"The investor question you could not answer",
+"Bootstrapping and the freedom you paid for",
+"Revenue as the only real validation",
+"The first sale",
+"Customers who are wrong and customers who are right",
+"Firing a customer",
+"Pricing as positioning",
+"Discounts and what they teach a buyer",
+"Free tiers and the cost of a user who will never pay",
+"The competitor you learned the most from",
+"Copying versus being inspired, with a real example",
+"Being copied",
+"Moats, and whether you have one",
+"The market you thought existed",
+"Talking to twenty people before building anything",
+"The interview question that revealed the real problem",
+"Building the wrong thing well",
+"Pivoting without calling it a pivot",
+"Shutting something down cleanly",
+"The email you sent to users when it ended",
+"What you kept from a company that failed",
+"Working for yourself and the loneliness nobody mentions",
+"Structure when nobody imposes it",
+"The morning routine that is actually a control ritual",
+"Productivity systems as procrastination with a nicer name",
+"What you do on a day with no meetings",
+"Rest as part of the work",
+"Burnout, described precisely, without metaphor",
+"Coming back from burnout slowly",
+"The vacation where you could not stop working",
+"Work as identity and what happens when it stops",
 
-  {
-    strand: "craft",
-    title: "Why everything AI makes looks the same",
-    premise: "You can spot a generated interface in two seconds. Explain the tells, then explain the fix.",
-    cuff: "List the tells out loud — the palette, the font, the layout, the rounding. Then say what breaks the pattern.",
-    beats: [
-      "The house style: the exact colors, faces, and spacing that repeat everywhere.",
-      "Why it happens — averages, safety, and the absence of a subject.",
-      "What a specific point of view looks like in practice, with one example of yours."
-    ],
-    honest: "The model is not out of ideas. It is out of constraints, and constraints are the designer's actual job.",
-    opener: "I can name the accent color before the page finishes loading."
-  },
-  {
-    strand: "craft",
-    title: "Taste is a list of things you refuse to do",
-    premise: "You have developed opinions. Write them as prohibitions, because that is how they actually work.",
-    cuff: "Recite five things you will not ship, and one reason each. Fast.",
-    beats: [
-      "Five rules, stated as refusals, from real projects.",
-      "Where each rule came from — a specific thing you shipped and regretted.",
-      "The rule you broke on purpose, and why it was right to break it."
-    ],
-    honest: "Taste is not knowing what is good. It is knowing, quickly, what is not, and being willing to say so.",
-    opener: "I do not use more than two typefaces and I have lost arguments about it."
-  },
-  {
-    strand: "craft",
-    title: "I copied a site frame by frame",
-    premise: "You pulled a screen recording apart at a tenth of a second to learn how the motion worked. Teach that method.",
-    cuff: "Walk through the method as if teaching it: capture, extract, isolate, rebuild.",
-    beats: [
-      "The site, and the exact moment of motion you could not stop rewatching.",
-      "The process: frames, timings, easing, and what you got wrong the first time.",
-      "What copying teaches that tutorials cannot — the timing between things."
-    ],
-    honest: "Copying carefully is the fastest form of study and the least respected one. The line is what you do after.",
-    opener: "I turned four seconds of a website into forty screenshots and learned more than in a month of docs."
-  },
-  {
-    strand: "craft",
-    title: "The animation that nobody notices is the point",
-    premise: "You spend hours on motion that most visitors could not describe. Justify it.",
-    cuff: "Defend one micro-interaction for sixty seconds, to someone who thinks it is a waste of time.",
-    beats: [
-      "The interaction: what it is, in milliseconds and easing curves.",
-      "What it communicates that static UI cannot — state, cause, weight.",
-      "Where it becomes indulgent, and how you tell."
-    ],
-    honest: "Good motion is felt, not seen. Bad motion is the reverse, which is why so much of it announces itself.",
-    opener: "Nobody has ever mentioned the hover state I spent an evening on, which means I got it right."
-  },
+/* ---------- learning & school ---------- */
+"School and the internet teach opposite lessons",
+"Grades as a lagging indicator",
+"The class you hated that shaped you",
+"The teacher who saw something first",
+"Learning something because a person made it interesting",
+"The subject you were told you were bad at",
+"Being fast versus being deep",
+"Cramming and what it does to memory",
+"The exam you aced and cannot explain",
+"Studying for the test versus studying the thing",
+"Homework as compliance training",
+"What you would keep from school if you could keep one thing",
+"The extracurricular that was really about admissions",
+"Doing things for a résumé and knowing it",
+"The four-year plan you made and its hidden assumptions",
+"Planning for a world that keeps moving",
+"Choosing a major for the wrong reasons",
+"The college conversation with your parents",
+"Rankings and what they actually measure",
+"The applicant you are on paper versus the person",
+"Writing about yourself for someone who decides your future",
+"Rejection letters and what they are worth",
+"The waitlist as a lesson in uncertainty",
+"Peers as the real curriculum",
+"Learning more from a friend than a course",
+"The study group that worked",
+"Teaching something to understand it",
+"Explaining your field to a twelve-year-old",
+"The concept you thought you understood until you taught it",
+"Reading a textbook cover to cover",
+"Lectures versus documentation",
+"Learning by breaking things",
+"The first thing you learned entirely online",
+"Free courses you did not finish",
+"Certificates and their real signal value",
+"Credentials versus portfolio",
+"The interview where your projects mattered more than your transcript",
+"Self-teaching and its blind spots",
+"What a curriculum gives you that curiosity does not",
+"The gap in your knowledge you keep working around",
+"Fundamentals you skipped and had to return to",
+"Learning math again as an adult",
+"The language you started and abandoned",
+"Fluency versus competence",
+"Studying abroad in your head",
+"The book that changed how you think",
+"Rereading a book you loved at a different age",
+"Books you pretend to have read",
+"Note-taking systems and whether any of them help",
+"Highlighting as a comfort activity",
+"Retrieval practice, honestly evaluated",
+"Spaced repetition and the things you chose to memorize",
+"What is worth memorizing in an era of instant lookup",
+"Knowing something versus being able to find it",
+"The fact you were sure about and were wrong about",
+"Updating a belief in public",
+"Sources, and how you decide what to trust",
+"Reading the primary source",
+"Citation as intellectual honesty",
+"The paper you read that everyone cites and nobody reads",
+"Peer review explained to a skeptic",
+"Replication and what it means for advice",
+"Statistics you misused",
+"Correlation stories you tell yourself",
+"Anecdote as evidence, and when it is enough",
+"Changing your mind about something you argued for",
+"Steelmanning the position you dislike",
+"The debate you lost and learned from",
+"Being taught by someone younger",
+"Learning from someone you disagree with",
+"The apprenticeship you wish existed in your field",
+"Watching an expert work",
+"Deliberate practice versus repetition",
+"Plateaus and how you got off one",
+"The skill that took ten times longer than expected",
+"Quitting a skill and being fine with it",
+"The instrument you stopped playing",
+"Returning to something after years away",
+"Muscle memory as a kind of knowledge",
+"Learning in your body versus in your head",
+"The thing you can do but cannot explain",
+"Tacit knowledge and how it gets transmitted",
+"Apprentices, mentors, and the myth of self-made",
+"What you learned from a job you disliked",
+"Customer service as an education",
+"Manual labor and what it taught you about software",
+"The summer that changed what you wanted",
+"Being bored as a child and what it built",
+"Unstructured time for kids, argued honestly",
+"What you would teach a thirteen-year-old with these tools",
+"The trap a beginner falls into now that did not exist before",
+"Tools first versus problems first",
+"Learning to search well",
+"Reading documentation as a skill",
+"Debugging as the actual subject",
+"Failure logs and what they reveal over a year",
+"Keeping a record of what you did not know",
+"The question you were too embarrassed to ask",
+"Asking a basic question in a room of experts",
+"Teaching a parent something technical",
+"The knowledge gap inside your own family",
 
-  {
-    strand: "discipline",
-    title: "Tennis taught me to lose on purpose",
-    premise: "The point you give up to win the game is a skill that translates directly into shipping.",
-    cuff: "Describe a match where the right move was to concede something. Then find the same move in a project.",
-    beats: [
-      "The match, the specific point, and the decision.",
-      "The transfer: what a conceded point looks like in a product — the cut feature, the ugly fix.",
-      "Where the analogy stops, because sport has an opponent and work usually does not."
-    ],
-    honest: "Trying your hardest on every point is how you lose the ones that matter. Nobody says this out loud to fifteen-year-olds.",
-    opener: "I lost a point deliberately for the first time at thirteen and it felt like cheating."
-  },
-  {
-    strand: "discipline",
-    title: "The hour before practice is the whole day",
-    premise: "You know exactly how the last hour before a fixed commitment behaves. Write about that hour.",
-    cuff: "Describe what you get done in a hard-edged hour versus an open afternoon. Explain the difference.",
-    beats: [
-      "The hour: what fits in it, reliably.",
-      "The open afternoon: what does not get done, reliably.",
-      "How you now build hard edges into days that do not have any."
-    ],
-    honest: "Time expands to fill the space you give it, and the fix is not more discipline. It is smaller containers.",
-    opener: "I get more done between four and five than between noon and six."
-  },
-  {
-    strand: "discipline",
-    title: "Sleep is a build step",
-    premise: "You have shipped tired and shipped rested and the code is not the same code.",
-    cuff: "Compare two sessions honestly — one at midnight, one in the morning. What actually differed?",
-    beats: [
-      "The midnight session: volume, confidence, bug count.",
-      "The morning after, reading it back.",
-      "The rule you keep now, and how often you break it."
-    ],
-    honest: "Late-night work feels productive because judgment goes before energy does. You cannot feel your own decline.",
-    opener: "Everything I have ever had to revert was written after eleven."
-  },
-  {
-    strand: "discipline",
-    title: "Practice with no scoreboard",
-    premise: "Sport gives you feedback every point. Most work does not, and you have had to invent it.",
-    cuff: "How do you know a working day was good? Answer without using the word productive.",
-    beats: [
-      "The sport version: instant, unambiguous, external feedback.",
-      "The work version: weeks of silence, then a signal that may be noise.",
-      "Your substitute scoreboard, and whether it is measuring the right thing."
-    ],
-    honest: "Without a scoreboard, effort feels like progress. That is the whole trap.",
-    opener: "In a match I know within two seconds. At a desk I can be wrong for a month."
-  },
+/* ---------- people, friendship & family ---------- */
+"The friend you stopped talking to for no reason",
+"Maintaining a friendship across time zones",
+"The group chat that has outlived its group",
+"Friendships that end without an ending",
+"Making friends as an adult",
+"The friend you outgrew and still love",
+"Being the person who always organizes",
+"Being the person who never texts first",
+"Reaching out after a long silence",
+"The message you should have sent",
+"Apologizing properly",
+"Being forgiven and not feeling it",
+"Forgiving someone who never asked",
+"The grudge you are still carrying",
+"Conflict avoidance and what it costs",
+"The conversation you rehearsed for weeks",
+"Saying the hard thing kindly",
+"Being told a hard truth and hearing it",
+"The friend who told you what nobody else would",
+"Loyalty versus honesty",
+"Keeping a secret that is not yours",
+"The advice you gave that went badly",
+"Being asked for advice you are not qualified to give",
+"Listening without fixing",
+"The comfort that actually helped",
+"Sitting with someone in a bad week",
+"Showing up when it is inconvenient",
+"Small gestures with disproportionate weight",
+"The person who remembered something you mentioned once",
+"Being remembered",
+"Gift-giving and what it says",
+"The thank-you note you never sent",
+"Gratitude that is specific instead of general",
+"Your parents as people with their own histories",
+"The story about your family you only recently understood",
+"What your grandparents did that you cannot imagine doing",
+"Family recipes as documents",
+"The thing your parent gave up",
+"Learning your parent's fears",
+"Becoming the adult in a family conversation",
+"Caring for someone who used to care for you",
+"Siblings and the different childhoods you had in the same house",
+"Being the oldest, youngest, or only",
+"Family expectations you inherited without agreeing to",
+"Disagreeing with your family politically",
+"Holidays and the labor behind them",
+"The family tradition you will keep",
+"The one you will not",
+"Leaving home and what you took",
+"Homesickness for a place or a version of yourself",
+"Calling home more or less than you should",
+"The phone call you keep meaning to make",
+"Distance and the relationships that survive it",
+"Moving away from a best friend",
+"Long-distance anything",
+"The person you think about who does not think about you",
+"Unrequited in any form",
+"Being liked by someone you do not like back",
+"Rejecting someone kindly",
+"The crush that shaped a year",
+"First love, described without nostalgia",
+"Breakups and the practical logistics nobody writes about",
+"Splitting friends after an ending",
+"Being single by choice and the questions you get",
+"Dating apps as a design problem",
+"Chemistry versus compatibility",
+"The relationship that ended because of timing",
+"Staying too long",
+"Leaving too early",
+"What a good partnership actually looks like day to day",
+"Arguments you keep having",
+"Learning someone else's love language and forgetting your own",
+"Domestic labor and who notices it",
+"Money in a relationship",
+"Meeting the parents",
+"Being someone's emergency contact",
+"Chosen family",
+"The mentor who became a friend",
+"Friendships with a big age gap",
+"The neighbor you actually know",
+"Community as a practice, not a feeling",
+"Volunteering and the honest reasons you did",
+"The stranger who helped you",
+"Helping a stranger and never knowing the outcome",
+"Being on the receiving end of charity",
+"Asking for help as a skill",
+"The favor that changed your year",
+"Reciprocity and keeping score",
+"Introverts, extroverts, and the questions that framework fails to answer",
+"Loneliness in a crowded life",
+"Being alone versus being lonely",
+"The friend you can be quiet with",
+"Small talk and its underrated function",
+"Learning names properly",
+"Being new somewhere",
+"The first week in a new city, socially",
+"Third places and where yours went",
+"Hosting badly and doing it anyway",
+"Dinner parties on no budget",
+"The recurring hangout that keeps a friendship alive",
+"Grief, and the friends who stayed",
+"Writing about someone who died",
+"The voicemail you kept",
 
-  {
-    strand: "money",
-    title: "Charging for the first time",
-    premise: "The gap between free and one dollar is the widest gap in the whole business.",
-    cuff: "Say your number out loud. Notice what your voice does. Then justify it.",
-    beats: [
-      "What you built, and what you almost gave away.",
-      "The conversation where you said a price, and what happened in your chest.",
-      "What being paid changed about the work — scope, honesty, speed."
-    ],
-    honest: "Free work protects you from a verdict. A price is someone telling you the truth in the only language that does not flatter.",
-    opener: "I had shipped a dozen things before anyone paid me a cent for any of them."
-  },
-  {
-    strand: "money",
-    title: "The advice that only works if you are already good",
-    premise: "Half of what you read assumes a network, a portfolio, or a reputation you do not have yet.",
-    cuff: "Take one famous piece of advice and explain who it actually works for.",
-    beats: [
-      "The advice, quoted fairly.",
-      "The hidden precondition — usually distribution, capital, or a warm intro.",
-      "The version that works from zero, which is almost always slower and less quotable."
-    ],
-    honest: "Survivor advice describes the last mile of a road, told by people who cannot remember the first one.",
-    opener: "Just build something people want assumes you already know some people."
-  },
-  {
-    strand: "money",
-    title: "What I would tell a thirteen-year-old with these tools",
-    premise: "Two years of leverage that did not exist before. Write the letter you would have wanted.",
-    cuff: "Give the whole letter in sixty seconds. Lead with what not to do.",
-    beats: [
-      "The one thing to start today, stated concretely enough to act on.",
-      "The trap you fell into that they will fall into — tools over problems, output over users.",
-      "What still takes the same amount of time as it always did."
-    ],
-    honest: "The tools got faster. Taste, judgment, and knowing what is worth building did not, and that is now the whole competition.",
-    opener: "You can build almost anything this weekend, which means the only hard question left is what."
-  }
+/* ---------- taste, art & design ---------- */
+"Taste is a list of things you refuse to do",
+"The five rules you will not break in your work",
+"The rule you broke on purpose and were right to",
+"How your taste changed in a year",
+"Liking something you know is bad",
+"Defending a guilty pleasure without the guilt",
+"The critic who made you see something new",
+"Reviews you read after you already decided",
+"The album that scored a specific period of your life",
+"A song you cannot listen to anymore",
+"Listening to one album for a month",
+"Shuffle versus sequence",
+"The concert that ruined other concerts",
+"Live music and the part recordings cannot hold",
+"Learning an instrument as an adult",
+"Playing badly in front of people",
+"The film you have seen ten times",
+"A movie you loved at fifteen and rewatched later",
+"Watching something with subtitles on and why",
+"Rewatching as a form of rest",
+"The show you quit halfway and why",
+"Endings that earned it",
+"Spoilers and what they actually spoil",
+"The book you could not finish and should have",
+"Reading slowly on purpose",
+"Marginalia and what you write in books",
+"Lending a book and losing it",
+"Physical media in a streaming world",
+"The playlist as a letter",
+"Making something for one person",
+"The birthday gift you made",
+"Handwriting versus typing",
+"Letters, and who still writes them",
+"The zine, the pamphlet, the small circulation",
+"Print as a constraint that improves writing",
+"Typography as an opinion",
+"Choosing a typeface for a specific reason",
+"The two-typeface rule and when you break it",
+"Color as a decision, not a preference",
+"Why most palettes look the same right now",
+"Designing in black and white first",
+"Whitespace as confidence",
+"Grid systems and when to break them",
+"The layout you copied and learned from",
+"Motion that clarifies versus motion that decorates",
+"The animation nobody notices, which is the point",
+"Micro-interactions worth an evening",
+"Skeuomorphism, flat design, and the pendulum",
+"Nostalgia in interface design",
+"Old software that still feels good",
+"The physical object with a perfect interface",
+"Buttons, switches, and the pleasure of mechanism",
+"Products designed to last",
+"Repair as a relationship with an object",
+"The thing you have owned for ten years",
+"Buying used on purpose",
+"The maker whose work you keep",
+"Craft in a mass-produced world",
+"The handmade thing that is worse and better",
+"Imperfection as evidence of a person",
+"Signature and style: what is yours",
+"Finding a voice versus performing one",
+"Writing sentences you would say out loud",
+"Reading your work aloud and what it exposes",
+"Editing as the real writing",
+"Cutting your favorite paragraph",
+"The draft that was better before you fixed it",
+"First lines and how you find them",
+"Endings you cannot land",
+"Structure as an argument",
+"Writing short as a discipline",
+"Long-form and why it still works",
+"The essay that took a year",
+"Publishing something imperfect on a deadline",
+"Titles, and how much they carry",
+"Metaphors that do too much work",
+"Jargon and who it excludes",
+"Explaining your work without jargon",
+"Clarity as respect",
+"Being interesting versus being clear",
+"Humor in serious writing",
+"The joke that carried an argument",
+"Sincerity after a decade of irony",
+"Earnestness as a risk",
+"Writing about something everyone has written about",
+"The overdone topic you have a real angle on",
+"Contrarianism as a habit and its cost",
+"Agreeing with the consensus in public",
+"Nuance in a format that punishes it",
+"Being quoted out of context",
+"Writing something you cannot summarize",
+"Photographs you take that nobody sees",
+"The camera you actually use",
+"Documenting a year in a specific way",
+"Taking fewer pictures on purpose",
+"The photo you did not take",
+"Looking at art without knowing anything about it",
+"The museum room you sat in",
+"Public art in your city",
+"Architecture you walk past daily",
+"Learning to look at buildings",
+
+/* ---------- body, health & habit ---------- */
+"Sport taught you to lose on purpose",
+"The point you gave up to win the game",
+"Practice with no scoreboard",
+"The hour before practice is the whole day",
+"Training when you do not want to",
+"The injury that changed how you move",
+"Rehab as a lesson in patience",
+"Coming back slower than you left",
+"Comparing yourself to your own best year",
+"Getting older in a sport",
+"The coach who was right and harsh",
+"The coach who was kind and effective",
+"Being coached versus being told",
+"Team sports and the version of you that shows up",
+"Individual sports and the conversation in your head",
+"Losing badly in public",
+"Winning and feeling nothing",
+"The rival who made you better",
+"Sportsmanship in a specific moment",
+"Watching a sport you cannot play",
+"The athlete whose career you followed",
+"Retirement in sport, at any age",
+"Sleep as a build step",
+"Everything you have reverted was written after eleven",
+"The night you did not sleep and the day that followed",
+"Sleep tracking and what it did to your sleep",
+"Caffeine, honestly accounted for",
+"The drink you gave up",
+"Alcohol and the social architecture around it",
+"Choosing not to drink in a drinking culture",
+"Food as routine versus food as pleasure",
+"Cooking the same thing every week",
+"Learning one dish properly",
+"Eating alone",
+"The meal you cook for other people",
+"Grocery shopping as a practice",
+"Diet advice and the industry behind it",
+"Tracking what you eat and stopping",
+"Body image, written carefully",
+"What exercise is actually for",
+"Movement without a goal",
+"Walking as thinking",
+"The route you walk every day",
+"Running and the first mile problem",
+"Lifting as a legible progress system",
+"Progress that stops being visible",
+"Consistency over intensity, tested honestly",
+"The habit that stuck and why",
+"The habit that never stuck",
+"Streaks and the tyranny of not breaking one",
+"Missing a day and continuing anyway",
+"Environment design instead of willpower",
+"Removing friction versus adding motivation",
+"The trigger that starts the behavior",
+"Rewards you invented for yourself",
+"Accountability, and whether it works for you",
+"Telling people your goal, or not",
+"Public commitment as a trap",
+"The identity shift behind a habit",
+"Being someone who does the thing versus doing the thing",
+"Quitting something you were good at",
+"The addiction nobody calls an addiction",
+"Screens before bed and the honest attempt to stop",
+"Mornings, and what they are actually for",
+"Chronotypes and the schedules imposed on us",
+"School start times, argued from experience",
+"Working at night and the trade you make",
+"Energy management instead of time management",
+"The two good hours in your day",
+"Protecting a block of time",
+"Interruptions and their real cost",
+"Context switching, measured",
+"Deep work in a house with other people",
+"Headphones as a signal",
+"Noise, silence, and what you need to think",
+"Working in public spaces",
+"The desk setup that actually changed things",
+"Standing, sitting, and the body at work",
+"Wrist pain, eye strain, and the costs nobody budgets for",
+"The break you do not take",
+"Rest that is not scrolling",
+"Boredom as an input",
+"Anxiety, described without metaphor",
+"The therapy conversation that shifted something",
+"Naming a feeling accurately",
+"Journaling as maintenance",
+"The mood you can predict by the day of the week",
+"Seasonal changes and your output",
+"Winter, and what it does to you",
+"Sunlight as a variable",
+"The doctor's appointment you delayed",
+"Advocating for yourself in a medical setting",
+"Chronic anything and the invisibility of it",
+"Caring for a body you did not choose",
+"Medication and the conversation around it",
+"Health advice on the internet",
+"The wellness product you bought",
+"Longevity culture, evaluated",
+"Mortality at your current age",
+
+/* ---------- place, time & home ---------- */
+"The city you left and what you still defend about it",
+"A place you loved that has changed",
+"Returning somewhere after years",
+"The neighborhood that raised you",
+"Gentrification from the inside",
+"Rent, and what it decides about your life",
+"The apartment you could not afford and took anyway",
+"Moving as an inventory of who you are",
+"What you threw away and regret",
+"The box you have not unpacked",
+"Making a room feel like yours",
+"The chair, the lamp, the specific object",
+"Living with less on purpose",
+"Living with more and being honest about it",
+"Sharing space with people",
+"Roommates and the systems that keep peace",
+"Chores as a negotiation",
+"The house rule that worked",
+"Home as a feeling versus an address",
+"The commute you had and what it did to you",
+"Public transit as a shared civic space",
+"Driving, and what you think about",
+"The road trip and its enforced conversation",
+"Travel that was not a vacation",
+"The trip that went wrong",
+"Traveling alone",
+"Being a tourist without pretending otherwise",
+"The place that was overrated and the one that was not",
+"Learning a city by walking it",
+"Getting lost on purpose",
+"Language barriers and the kindness of strangers",
+"Eating somewhere you could not read the menu",
+"The souvenir that meant something",
+"Photos from a trip you never look at",
+"Coming home and the reentry",
+"Living abroad and the version of you that exists there",
+"Missing a place you have never lived",
+"The landscape that recalibrates you",
+"Water, mountains, or the specific terrain you need",
+"Nature as a place you visit versus live in",
+"Weather as a personality",
+"The storm you remember",
+"Seasons and how your year is actually structured",
+"The month that is always hard",
+"Anniversaries your body remembers",
+"Time as measured by projects instead of dates",
+"The year that felt long and the one that vanished",
+"Keeping a calendar of what actually happened",
+"Reading your own journal from three years ago",
+"The version of you that wrote it",
+"Future self as a stranger you make decisions for",
+"Letters to yourself",
+"Time capsules and what you would put in one",
+"Predictions you made and got wrong",
+"What you were sure would happen by now",
+"The technology you expected that never arrived",
+"The change you did not see coming",
+"Nostalgia for a period you did not enjoy at the time",
+"Documenting the ordinary",
+"The photograph of a normal afternoon",
+"What you will miss about right now",
+"Aging, from where you stand",
+"The birthday that landed differently",
+"Milestones and the ages we assign them",
+"Being ahead or behind an imaginary schedule",
+"Comparison as a thief, examined honestly",
+"The peer whose path you track",
+"Watching someone succeed at what you wanted",
+"Envy, described precisely",
+"Admiration without envy",
+"The person you were jealous of who was struggling",
+"Success that looked different up close",
+"The public life versus the private one",
+"Ambition at different ages",
+"What you would do with an unexpected free year",
+"Sabbaticals for people who cannot take one",
+"Doing nothing, badly",
+"Waiting: for results, a reply, a diagnosis",
+"Uncertainty as a permanent condition",
+"Making decisions with incomplete information",
+"Reversible versus irreversible choices",
+"The decision you agonized over that did not matter",
+"The one you made casually that changed everything",
+"Regret, and whether it is useful",
+"The path not taken, without romanticizing it",
+"Counterfactuals and their limits",
+"Being at peace with an old decision",
+"Closing a chapter deliberately",
+"Rituals for endings",
+"The last time you did something without knowing it was the last",
+"Firsts you remember and lasts you do not",
+"Keeping something going past its natural end",
+"Starting over in a new field",
+"Being a beginner in public at any age",
+"The thing you started this year",
+"What you will still be doing in ten years",
+"Legacy at a small scale",
+"What you want people to be able to use after you",
+"The archive you are leaving",
+"Writing something your future family will read",
+"Ordinary days as the actual life",
+
+/* ---------- belief, self & meaning ---------- */
+"The belief you changed your mind about this year",
+"An opinion you hold that your friends do not",
+"The thing you are wrong about, probably",
+"How you decide what is true",
+"Certainty as a warning sign",
+"Doubt as a working method",
+"The question you cannot answer and keep returning to",
+"Faith, in whatever form you have it",
+"Losing a belief and what replaced it",
+"Ritual without religion",
+"The practice that grounds you",
+"Meaning made rather than found",
+"Purpose as a construction project",
+"The thing you do that has no justification",
+"Play as an end in itself",
+"Wasting time well",
+"Optimization culture and what it costs",
+"Measuring what matters and the parts that resist measurement",
+"The unquantifiable thing you protect",
+"Efficiency as a value with limits",
+"Slowness on purpose",
+"Doing something the hard way once",
+"Manual processes worth keeping",
+"Skills you keep because they are yours",
+"Self-reliance and its limits",
+"Asking for help as a value, not a failure",
+"Independence as an inherited ideal",
+"Interdependence, described concretely",
+"Owing people and being owed",
+"Responsibility to strangers",
+"The civic duty you actually perform",
+"Voting, jury duty, and the small machinery",
+"Local politics as the level that touches you",
+"The issue you changed your mind about",
+"Talking politics with someone you love",
+"Disagreement without contempt",
+"The argument you regret winning",
+"Being persuaded",
+"What would change your mind, stated in advance",
+"Principles versus preferences",
+"The line you would not cross at work",
+"Ethics in the small decisions",
+"Honesty when it costs you something",
+"The lie you told and its aftershocks",
+"White lies and their accumulated weight",
+"Integrity as consistency across rooms",
+"Being the same person in every context",
+"The version of you at work versus at home",
+"Masks, code-switching, and what it takes",
+"Authenticity as a demand",
+"Privacy as a value in a public life",
+"What you keep to yourself",
+"The thing you have never written about",
+"Secrets and their upkeep",
+"Shame versus guilt, distinguished by example",
+"Making amends concretely",
+"Being disliked and surviving it",
+"Caring less about opinions, in practice",
+"Approval as a motivator you are unwinding",
+"The compliment you cannot accept",
+"Self-criticism and its diminishing returns",
+"Talking to yourself the way you talk to a friend",
+"Confidence built from evidence",
+"Competence and the quiet it brings",
+"The thing you are unreasonably good at",
+"The thing you will never be good at",
+"Accepting a ceiling",
+"Effort versus talent, from experience",
+"What ten thousand hours actually looked like",
+"Motivation as a myth you stopped waiting for",
+"Discipline as a set of systems, not a trait",
+"Identity as the real lever",
+"Changing a self-story",
+"The label you dropped",
+"Being defined by a role that ended",
+"Reinvention without erasing the past",
+"Continuity: what has stayed the same since you were ten",
+"The child you were, still visible",
+"Traits inherited and traits chosen",
+"Nature, nurture, and the parts you can move",
+"Free will as a practical question",
+"Habit as character",
+"The small daily thing that adds up to a life",
+"What you do when nobody would know",
+"Integrity in an empty room",
+"Kindness that costs you something",
+"Generosity as a practice with limits",
+"Boundaries and the people who test them",
+"Saying no as self-respect",
+"The commitment you kept at real cost",
+"Loyalty examined",
+"Courage in an ordinary setting",
+"The time you spoke up",
+"The time you did not",
+"Fear you acted through",
+"Risk tolerance and where yours came from",
+"Failure as information versus failure as identity",
+"The worst outcome you survived",
+"Hope as a discipline",
+"What you are optimistic about, specifically",
+"The future you are working toward, described in detail",
+
 ];
 
-const MODES = {
-  cuff: {
-    label: "Off the cuff",
-    seconds: 60
-  },
-  deep: {
-    label: "Deep cut"
+const root = document.documentElement;
+const dial = document.getElementById("dial");
+const track = document.getElementById("track");
+const topicEl = document.getElementById("topic");
+const freqEl = document.getElementById("freq");
+const spinBtn = document.getElementById("spin");
+const spinLabel = document.getElementById("spinLabel");
+const themeBtn = document.getElementById("themeBtn");
+
+/* ---------- theme ---------- */
+
+function storedTheme() {
+  try {
+    return window.localStorage.getItem("tuner-theme");
+  } catch (error) {
+    return null;
   }
-};
+}
 
-const els = {
-  card: document.getElementById("card"),
-  title: document.getElementById("promptTitle"),
-  premise: document.getElementById("premise"),
-  body: document.getElementById("modeBody"),
-  freq: document.getElementById("freq"),
-  station: document.getElementById("stationLabel"),
-  filters: document.getElementById("filters"),
-  spin: document.getElementById("spinBtn"),
-  track: document.getElementById("dialTrack"),
-  poolCount: document.getElementById("poolCount"),
-  seenCount: document.getElementById("seenCount")
-};
+function storeTheme(value) {
+  try {
+    window.localStorage.setItem("tuner-theme", value);
+  } catch (error) {
+    /* private mode or sandboxed storage — the toggle still works for this session */
+  }
+}
 
-let mode = "cuff";
-let active = new Set();
-let bag = [];
-let current = null;
-let spun = 0;
-let timerId = null;
+const saved = storedTheme();
+if (saved) {
+  root.setAttribute("data-theme", saved);
+}
+
+themeBtn.addEventListener("click", () => {
+  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const current = root.getAttribute("data-theme") || (systemDark ? "dark" : "light");
+  const next = current === "dark" ? "light" : "dark";
+  root.setAttribute("data-theme", next);
+  storeTheme(next);
+});
+
+/* ---------- Claude mark ---------- */
+
+function drawMark() {
+  const spokes = 12;
+  const svg = document.getElementById("mark");
+  for (let i = 0; i < spokes; i++) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M12 1.9c.75 3.3 1.05 5.9 1.05 8.2 0 1-.35 1.9-1.05 1.9s-1.05-.9-1.05-1.9c0-2.3.3-4.9 1.05-8.2z");
+    path.setAttribute("transform", `rotate(${(360 / spokes) * i} 12 12)`);
+    svg.appendChild(path);
+  }
+}
 
 /* ---------- dial ---------- */
 
 function buildDial() {
-  const ticks = 96;
-  const frag = document.createDocumentFragment();
-  for (let i = 0; i < ticks; i++) {
-    const tick = document.createElement("span");
-    const major = i % 6 === 0;
-    tick.style.height = major ? "26px" : (i % 3 === 0 ? "15px" : "9px");
+  const fragment = document.createDocumentFragment();
+  for (let i = 0; i < 130; i++) {
+    const tick = document.createElement("i");
+    const major = i % 5 === 0;
+    tick.style.height = major ? "26px" : "12px";
     if (major) {
       tick.classList.add("major");
     }
-    frag.appendChild(tick);
+    fragment.appendChild(tick);
   }
-  els.track.appendChild(frag);
+  track.appendChild(fragment);
 }
 
-function sweepDial() {
-  const drift = Math.round((Math.random() - 0.5) * 260);
-  els.track.style.transform = `translateX(${drift}px)`;
-}
+/* ---------- spinning ---------- */
 
-/* ---------- pool ---------- */
+let bag = [];
+let started = false;
 
-function strands() {
-  return [...new Set(TOPICS.map((t) => t.strand))];
-}
-
-function pool() {
-  if (active.size === 0) {
-    return TOPICS;
-  }
-  return TOPICS.filter((t) => active.has(t.strand));
-}
-
-function refillBag() {
-  bag = pool().slice();
+function refill() {
+  bag = TOPICS.slice();
   for (let i = bag.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [bag[i], bag[j]] = [bag[j], bag[i]];
   }
-  if (current && bag.length > 1 && bag[bag.length - 1] === current) {
-    [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
-  }
-}
-
-function draw() {
-  if (bag.length === 0) {
-    refillBag();
-  }
-  return bag.pop();
-}
-
-/* ---------- render ---------- */
-
-function frequencyFor(topic) {
-  const index = TOPICS.indexOf(topic);
-  return (88.1 + index * 0.3).toFixed(1);
-}
-
-function renderBody(topic) {
-  els.body.innerHTML = "";
-
-  if (mode === "cuff") {
-    const section = document.createElement("div");
-    section.className = "section";
-    section.innerHTML = `
-      <p class="label">Talk about this</p>
-      <p class="honest">${topic.cuff}</p>
-      <div class="timer">
-        <span class="timer-readout" id="readout">1:00</span>
-        <div class="timer-bar"><i id="bar"></i></div>
-        <button class="ghost" id="timerBtn" type="button">Start sixty</button>
-      </div>
-    `;
-    els.body.appendChild(section);
-    wireTimer();
-    return;
-  }
-
-  const beats = topic.beats
-    .map((b, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${b}</li>`)
-    .join("");
-
-  const section = document.createElement("div");
-  section.className = "section";
-  section.innerHTML = `
-    <p class="label">The shape of it</p>
-    <ul class="beats">${beats}</ul>
-  `;
-
-  const honest = document.createElement("div");
-  honest.className = "section";
-  honest.innerHTML = `
-    <p class="label">The part only you can write</p>
-    <p class="honest">${topic.honest}</p>
-  `;
-
-  const opener = document.createElement("div");
-  opener.className = "section";
-  opener.innerHTML = `
-    <p class="label">Open with something like</p>
-    <p class="opener">${topic.opener}</p>
-  `;
-
-  els.body.append(section, honest, opener);
-}
-
-function render(topic) {
-  current = topic;
-  els.title.textContent = topic.title;
-  els.premise.textContent = topic.premise;
-  els.freq.textContent = `${frequencyFor(topic)} FM`;
-  els.station.textContent = `${topic.strand} · ${MODES[mode].label}`;
-  renderBody(topic);
 }
 
 function spin() {
-  stopTimer();
-  sweepDial();
-  els.card.classList.add("tuning");
-  spun += 1;
-  els.seenCount.textContent = String(spun);
+  const topic = bag.length ? bag.pop() : (refill(), bag.pop());
+  const drift = Math.round((Math.random() - 0.5) * 420);
+  const station = (87.5 + Math.random() * 20.4).toFixed(1);
+
+  track.style.transform = `translateX(${drift}px)`;
+  spinBtn.classList.toggle("turning");
+  topicEl.classList.add("swap");
+
   window.setTimeout(() => {
-    render(draw());
-    els.card.classList.remove("tuning");
-  }, 190);
-}
+    topicEl.textContent = topic;
+    topicEl.classList.remove("swap");
+    freqEl.textContent = `${station} FM`;
+  }, 220);
 
-/* ---------- timer ---------- */
-
-function stopTimer() {
-  if (timerId) {
-    window.clearInterval(timerId);
-    timerId = null;
+  if (!started) {
+    started = true;
+    spinLabel.innerHTML = "Spin again";
   }
 }
 
-function wireTimer() {
-  const btn = document.getElementById("timerBtn");
-  const readout = document.getElementById("readout");
-  const bar = document.getElementById("bar");
-  let left = MODES.cuff.seconds;
-
-  const paint = () => {
-    const m = Math.floor(left / 60);
-    const s = left % 60;
-    readout.textContent = `${m}:${String(s).padStart(2, "0")}`;
-    bar.style.right = `${(left / MODES.cuff.seconds) * 100}%`;
-  };
-
-  paint();
-
-  btn.addEventListener("click", () => {
-    if (timerId) {
-      stopTimer();
-      btn.textContent = "Resume";
-      return;
-    }
-    if (left === 0) {
-      left = MODES.cuff.seconds;
-      paint();
-    }
-    btn.textContent = "Pause";
-    timerId = window.setInterval(() => {
-      left -= 1;
-      paint();
-      if (left <= 0) {
-        stopTimer();
-        btn.textContent = "Again";
-        readout.textContent = "time";
-      }
-    }, 1000);
-  });
-}
-
-/* ---------- controls ---------- */
-
-function buildFilters() {
-  strands().forEach((strand) => {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "chip";
-    chip.textContent = strand;
-    chip.setAttribute("aria-pressed", "false");
-    chip.addEventListener("click", () => {
-      if (active.has(strand)) {
-        active.delete(strand);
-        chip.setAttribute("aria-pressed", "false");
-      } else {
-        active.add(strand);
-        chip.setAttribute("aria-pressed", "true");
-      }
-      refillBag();
-      els.poolCount.textContent = String(pool().length);
-      spin();
-    });
-    els.filters.appendChild(chip);
-  });
-}
-
-document.querySelectorAll("[data-mode]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    mode = btn.dataset.mode;
-    document.querySelectorAll("[data-mode]").forEach((b) => {
-      b.setAttribute("aria-pressed", String(b === btn));
-    });
-    stopTimer();
-    if (current) {
-      els.station.textContent = `${current.strand} · ${MODES[mode].label}`;
-      renderBody(current);
-    }
-  });
-});
-
-els.spin.addEventListener("click", spin);
+dial.addEventListener("click", spin);
+spinBtn.addEventListener("click", spin);
 
 document.addEventListener("keydown", (event) => {
-  const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement;
-  if (typing) {
+  if (event.code !== "Space") {
     return;
   }
-  if (event.code === "Space") {
-    event.preventDefault();
-    spin();
-  }
+  event.preventDefault();
+  spin();
 });
 
+drawMark();
 buildDial();
-buildFilters();
-refillBag();
-els.poolCount.textContent = String(TOPICS.length);
-render(draw());
-spun = 1;
-els.seenCount.textContent = "1";
+refill();
 </script>
 
 </body>
