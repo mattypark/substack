@@ -185,7 +185,6 @@ body {
   justify-content: center;
   gap: 7px;
   height: 34px;
-  transition: transform 820ms cubic-bezier(0.18, 0.9, 0.22, 1);
 }
 
 .dial-track i {
@@ -229,9 +228,27 @@ body {
   margin: -1.25rem 0 0;
 }
 
+.status {
+  margin: 0 0 -1.4rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.75;
+}
+
 /* ---------- topic ---------- */
 
+.topic-slot {
+  display: grid;
+  place-items: center;
+  width: min(100%, 34rem);
+  min-height: 7.5rem;
+}
+
 .topic {
+  grid-area: 1 / 1;
   margin: 0;
   max-width: 24ch;
   font-family: var(--display);
@@ -241,12 +258,41 @@ body {
   letter-spacing: -0.015em;
   color: var(--ink);
   text-wrap: balance;
-  transition: opacity 220ms ease, transform 220ms ease;
+  will-change: opacity, transform, filter;
 }
 
-.topic.swap {
-  opacity: 0;
-  transform: translateY(6px);
+/* Each candidate that flashes past during the spin. */
+.topic.flick {
+  animation: flick 260ms ease-out both;
+}
+
+@keyframes flick {
+  from {
+    opacity: 0;
+    transform: translateY(7px) scale(0.985);
+  }
+
+  to {
+    opacity: 0.72;
+    transform: none;
+  }
+}
+
+/* The one it lands on. */
+.topic.landed {
+  animation: land 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes land {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ---------- spin button ---------- */
@@ -279,11 +325,16 @@ body {
   width: 18px;
   height: 18px;
   fill: currentColor;
-  transition: transform 700ms cubic-bezier(0.18, 0.9, 0.22, 1);
 }
 
 .spin.turning svg {
-  transform: rotate(180deg);
+  animation: mark-turn 1.6s linear infinite;
+}
+
+@keyframes mark-turn {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spin kbd {
@@ -328,7 +379,11 @@ body {
 
   <p class="freq" id="freq">88.1 FM</p>
 
-  <p class="topic" id="topic" aria-live="polite">Press space to begin.</p>
+  <p class="status" id="status">ready</p>
+
+  <div class="topic-slot">
+    <p class="topic" id="topic" aria-live="polite">Press space to begin.</p>
+  </div>
 
   <button class="spin" id="spin" type="button">
     <svg id="mark" viewBox="0 0 24 24" aria-hidden="true"></svg>
@@ -345,6 +400,7 @@ const dial = document.getElementById("dial");
 const track = document.getElementById("track");
 const topicEl = document.getElementById("topic");
 const freqEl = document.getElementById("freq");
+const statusEl = document.getElementById("status");
 const spinBtn = document.getElementById("spin");
 const spinLabel = document.getElementById("spinLabel");
 const themeBtn = document.getElementById("themeBtn");
@@ -409,10 +465,9 @@ function buildDial() {
   track.appendChild(fragment);
 }
 
-/* ---------- spinning ---------- */
+/* ---------- the pool ---------- */
 
 let bag = [];
-let started = false;
 
 function refill() {
   bag = TOPICS.slice();
@@ -422,25 +477,96 @@ function refill() {
   }
 }
 
+function next() {
+  if (!bag.length) {
+    refill();
+  }
+  return bag.pop();
+}
+
+/* ---------- spinning ----------
+   One rAF loop drives everything: the dial scrolls, the frequency climbs, and
+   candidate topics flash past. All three decelerate on the same curve, so the
+   spin reads as a single mechanism winding down rather than three timers. */
+
+const TICK_PITCH = 42.5; /* five ticks — the repeat unit, so the scroll loops seamlessly */
+const MIN_GAP = 46;      /* ms between topics at full speed */
+const MAX_GAP = 620;     /* ms between the last few, when it is crawling */
+const TOP_SPEED = 2.6;   /* dial pixels per ms at the start */
+
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+let spinning = false;
+let started = false;
+let offset = 0;
+
+function show(text, landed) {
+  topicEl.classList.remove("flick", "landed");
+  void topicEl.offsetWidth; /* restart the animation */
+  topicEl.textContent = text;
+  topicEl.classList.add(landed ? "landed" : "flick");
+}
+
 function spin() {
-  const topic = bag.length ? bag.pop() : (refill(), bag.pop());
-  const drift = Math.round((Math.random() - 0.5) * 420);
-  const station = (87.5 + Math.random() * 20.4).toFixed(1);
+  if (spinning) {
+    return;
+  }
 
-  track.style.transform = `translateX(${drift}px)`;
-  spinBtn.classList.toggle("turning");
-  topicEl.classList.add("swap");
-
-  window.setTimeout(() => {
-    topicEl.textContent = topic;
-    topicEl.classList.remove("swap");
-    freqEl.textContent = `${station} FM`;
-  }, 220);
+  const landing = next();
 
   if (!started) {
     started = true;
-    spinLabel.innerHTML = "Spin again";
+    spinLabel.textContent = "Spin again";
   }
+
+  if (reduceMotion.matches) {
+    show(landing, true);
+    statusEl.textContent = "ready";
+    freqEl.textContent = `${(87.5 + Math.random() * 20.4).toFixed(1)} FM`;
+    return;
+  }
+
+  spinning = true;
+  statusEl.textContent = "drawing…";
+  spinBtn.classList.add("turning");
+  spinBtn.setAttribute("aria-busy", "true");
+
+  const duration = 3600 + Math.random() * 1300; /* 3.6 – 4.9s */
+  const start = performance.now();
+  let last = start;
+  let nextSwapAt = start;
+
+  function frame(now) {
+    const progress = Math.min(1, (now - start) / duration);
+    const decay = Math.pow(1 - progress, 2.2); /* 1 → 0: how much momentum is left */
+    const delta = Math.min(now - last, 48);
+    last = now;
+
+    offset = (offset + TOP_SPEED * decay * delta) % TICK_PITCH;
+    track.style.transform = `translateX(${-offset}px)`;
+
+    freqEl.textContent = `${(87.5 + (((1 - decay) * 47 + progress * 11) % 20.4)).toFixed(1)} FM`;
+
+    if (now >= nextSwapAt && progress < 1) {
+      show(next(), false);
+      topicEl.style.filter = decay > 0.35 ? `blur(${(decay * 2.4).toFixed(2)}px)` : "none";
+      nextSwapAt = now + MIN_GAP + (MAX_GAP - MIN_GAP) * Math.pow(progress, 2.6);
+    }
+
+    if (progress < 1) {
+      window.requestAnimationFrame(frame);
+      return;
+    }
+
+    topicEl.style.filter = "none";
+    show(landing, true);
+    statusEl.textContent = "ready";
+    spinBtn.classList.remove("turning");
+    spinBtn.removeAttribute("aria-busy");
+    spinning = false;
+  }
+
+  window.requestAnimationFrame(frame);
 }
 
 dial.addEventListener("click", spin);
