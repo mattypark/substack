@@ -296,37 +296,33 @@ body {
   will-change: opacity, transform, filter;
 }
 
-/* Each candidate that flashes past during the spin. */
+/* Each candidate that flashes past during the spin — fade only, no travel. */
 .topic.flick {
-  animation: flick 260ms ease-out both;
+  animation: flick 200ms ease-out both;
 }
 
 @keyframes flick {
   from {
     opacity: 0;
-    transform: translateY(7px) scale(0.985);
   }
 
   to {
     opacity: 0.72;
-    transform: none;
   }
 }
 
 /* The one it lands on. */
 .topic.landed {
-  animation: land 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: land 420ms ease-out both;
 }
 
 @keyframes land {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.97);
   }
 
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -1539,6 +1535,62 @@ function buildDial() {
   track.appendChild(fragment);
 }
 
+/* ---------- detent click ----------
+   Synthesized rather than loaded: a short noise burst through a bandpass,
+   which is close to what a tuner detent actually sounds like, and keeps the
+   page a single self-contained file with no audio asset to fetch. */
+
+let audio = null;
+let noise = null;
+
+function ensureAudio() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) {
+    return null;
+  }
+  if (!audio) {
+    audio = new Ctx();
+    const frames = Math.floor(audio.sampleRate * 0.04);
+    noise = audio.createBuffer(1, frames, audio.sampleRate);
+    const channel = noise.getChannelData(0);
+    for (let i = 0; i < frames; i++) {
+      channel[i] = Math.random() * 2 - 1;
+    }
+  }
+  if (audio.state === "suspended") {
+    audio.resume();
+  }
+  return audio;
+}
+
+function click(weight) {
+  const ctx = ensureAudio();
+  if (!ctx) {
+    return;
+  }
+
+  const source = ctx.createBufferSource();
+  source.buffer = noise;
+
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = (weight < 1 ? 2400 : 1250) * (0.9 + Math.random() * 0.2);
+  band.Q.value = weight < 1 ? 7 : 4;
+
+  const gain = ctx.createGain();
+  const now = ctx.currentTime;
+  const peak = 0.16 * weight * (0.85 + Math.random() * 0.3);
+  const decay = weight < 1 ? 0.035 : 0.09;
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(peak, now + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+
+  source.connect(band).connect(gain).connect(ctx.destination);
+  source.start(now);
+  source.stop(now + decay + 0.01);
+}
+
 /* ---------- the pool ---------- */
 
 let bag = [];
@@ -1601,6 +1653,7 @@ function spin() {
   }
 
   spinning = true;
+  ensureAudio();
   statusEl.textContent = "drawing…";
   spinBtn.classList.add("turning");
   spinBtn.setAttribute("aria-busy", "true");
@@ -1623,6 +1676,7 @@ function spin() {
 
     if (now >= nextSwapAt && progress < 1) {
       show(next(), false);
+      click(1);
       topicEl.style.filter = decay > 0.35 ? `blur(${(decay * 2.4).toFixed(2)}px)` : "none";
       nextSwapAt = now + MIN_GAP + (MAX_GAP - MIN_GAP) * Math.pow(progress, 2.6);
     }
@@ -1634,6 +1688,7 @@ function spin() {
 
     topicEl.style.filter = "none";
     show(landing, true);
+    click(1.6);
     statusEl.textContent = "ready";
     spinBtn.classList.remove("turning");
     spinBtn.removeAttribute("aria-busy");
